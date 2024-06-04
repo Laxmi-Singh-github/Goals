@@ -1,0 +1,1155 @@
+Core 24: 3/11/2024
+
+	1. Python programming
+	2. SQL - Joins
+	3. Normalization,data modelling
+	4. Pyspark code for CDC,incremental load
+
+
+1.Python coding question on counters with space and time complexity 
+2.Why and what is Databricks 
+3. Diff btw set and list
+4. 2-3 huge json data related questions on handling, processing,storing
+5. My project / platform related cross questions
+6. Diff btw azure function and Databricks
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+Coforge----------> 3/12/2024 (1st round)
+
+
+	1. API /step by step to read parquet from s3?
+	2. Linux
+	3. Redshift -redshift spectrum. Steps to connect to s3 ? (External tables)
+	4. Partition by date column syntax in pyspark
+	5. Diff btw transformation and actions
+	6. What is aggregate transformation type?
+	7. Optimization of spark program
+	8. Hive makes use of which execution engine.Differnt processing engines like tez,EMR,spark
+	9. Linux- Basic commands,shell scripting
+	10. AWS glue-Pysaprk scripts
+	11. Use of redshift?
+	12. Procedures and  Functions in redshift?
+	13. How putting data in redshift from pysaprk. Steps? Connection details,configuration etc.
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+JIO -->03/13/2024 (1st round)
+
+
+list=[1,2,3,4,5]
+target_num=5
+count=0
+for i in list:
+	if i==target_num:
+		print("Number exists")
+		count+=1
+	else:
+		print("number doesnot exist")
+		
+print("position",count)
+
+
+
+
+
+==============================================
+salary_details:
+
+department 		salary
+IT				1000	1
+Finance			500
+HR				400
+HR				400
+
+
+
+
+	department 		salary
+HR				300						
+							
+
+second highest salary from each department.
+
+
+select department,case when rank is null then max(salary) as salary
+					   else rank as salary
+from (
+select department,salary , dense_rank() over(partition by department order by salary desc) as rank
+from salary_details
+where rank=2)a
+group by department
+
+
+select department,
+case when when rank is null then max(salary) as salary 
+else (select department,salary , dense_rank() over(partition by department order by salary desc) as rank
+from salary_details
+where rank=2)a
+from salary_details
+
+
+
+select s.department,max(s.salary)
+from 
+(select department,salary , dense_rank() over(partition by department order by salary desc) as rank
+from salary_details
+where rank=2)a
+right join salary_details s
+on s.department=a.department and s.salary=a.salary
+group by s.department
+
+
+IT 100		1
+IT 50		2
+HR 100		1
+
+
+Airflow-------------->
+1.Operators in Airflow -->spark submit operator,email operator-spark job failure,bash,
+	
+	
+///////////////////////////////////////////// KPI Partners--1st round 22 march 2024
+	Q. Perofrm all joins in sql and give output?
+	Table_A
+	
+	COL
+	id
+	1
+	21
+	1
+	0
+	null
+	
+	Table_B
+	
+	COL
+	id
+	1
+	0
+	null
+	null
+	12
+	
+	
+	Joins:
+	
+	Inner_join------>
+	select * from table_a a
+	join table_b b
+	on  a.id=b.id
+	
+	O/p:
+	1
+	0
+	
+	
+	left join---->
+	select * from table_a a
+	left join table_b b
+	on  a.id=b.id
+	
+	o/p:
+	1
+	21
+	1
+	0
+	
+	===========================
+	Q. diff between total apple and total banana in sql?
+	fruit quantity
+	apple 10
+	banana 20
+	banana 1
+	apple 5
+	apple 7
+	banana 60
+	
+	100
+	-
+	50
+	
+	select sum(quantity)
+	from table fruits
+	where fruit="apple"
+	MINUS
+	select sum(quantity)
+	from table fruits
+	where fruit="banana"
+	
+	
+	or
+	
+	select diff(apple_quantity,banana_quanity)
+	from(
+	select case when fruits="apple" then sum(quantity) as apple_quantity
+				when fruits="banana" then sum(quantity) as banana_quanity
+	from fruits)a
+	
+	=========================Pyspark
+	
+	
+	table 1
+	+---+----+  
+	| id|name|
+	+---+----+  
+	|  1|   a|  
+	|  2|   b|
+	+---+----+
+	
+	table 2
+	+---+-------+
+	| id|   att |
+	+---+-------+
+	|  1|id,name|
+	|  2|   id  |
+	+---+-------+
+	
+	output
+	+---+----+-------+---+
+	| id|name|  att  |new|
+	+---+----+-------+---+
+	|  1|   a|id,name|1,a|
+	|  2|   b|  id   |2,b|
+	+---+----+-------+---+
+	
+	df1=spark.read.csv("/path/table1.csv")
+	df2=spark.read.csv("/path/table2.csv")
+	
+	joined_df=df1.full_outer_join(df2,df1.id==df2.id)
+	
+	joined_df.withcolumn("new",concat(df['id]],df['name'])
+	
+	
+	==================================== Python
+	Q1.
+	String="Hi Hello"
+	o/p =="iH olleh"
+	
+	reverse=""
+	def reverse(str):
+		list=str.split(" ")
+		for i in list:
+			reverse.append(i[::-1])
+	print(reverse)
+		
+	
+	output=reverse("Hi Hello")
+	print(output)
+	
+	
+	Q2.
+	
+	list=[['a\nb\nc\nd','hi'],['a','hi']]
+	output=[['abcd','hi'],['a','hi']]
+	
+	
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////// Persistent 23 March 2024//////////////////////////////////////////////
+	 
+	Have you developed/enhanced any framework using Python or PySpark?
+	 
+	 
+	What is your expertise level in working on Databricks with Parquette Files and Notes?
+	 
+	 
+	In past 1 year, have you developed/enhanced any Pipelines for ETL or Orchestration purpose through ADF?
+	 
+	 
+	In past 1 year, have you ever developed/enhanced any data migration, conversion, transformation, integration framework/models   using SQL-PL/SQL?
+	 
+	 
+	Command to combine Two Dataframes in pyspark
+	Command to save Dataframe as table in pyspark
+	 
+	How can a SQL query be executed in a Python or Scala notebook without Spark SQL?
+	
+	 
+	What is the Databricks runtime used for?
+	How do you import data into Delta Lake?
+	What does an index mean in the context of Delta Lake?
+	Which programming languages can be used to integrate with Azure Databricks?
+	 
+	 
+	Explain the concept of AWS Data Pipeline and its role in orchestrating data workflows.
+	 
+	 
+	How can AWS Glue Streaming ETL be utilized for real-time data processing?
+	How can AWS Glue handle data deduplication in ETL processes?
+	Explain the significance of AWS Data Lakes in modern data engineering architectures.
+	What is AWS Data Pipeline’s role in managing dependencies between different stages of a data engineering workflow?
+	 
+	
+	
+	/////////////////////// koantek 28 March 2024
+	
+	
+	#Write a SQL query to extract the month and year from a date column.
+	select month(date),year(date)
+	from table
+	#Write a query to get the top 5 highest-paid employees from a table named "salaries."
+	select * from table
+	where a<=5
+	(select dense_rank() over (partition by salary order by salary desc) as rank
+	from table)a
+	limit 5
+	
+	#Write a SQL query to find customers who have placed more than 3 orders.
+	select csutomer_id
+	from orders
+	group by customer_id 
+	having count(*)>3
+	##PYTHON
+	#Write a function to reverse a string in Python
+	str="laxmi"
+	rev=str[::-1]
+	print(rev)
+	def reverse(str):
+	    rev=str[::-1]
+	    return rev
+	reverse("laxmi")  
+	#Write a function to count the number of vowels in a given string
+	def vowels(str)
+	    count=0
+	    for i in str:
+	        if i in ('a','e','i','o','u','A'):
+	            count+=1
+	    return count
+	    
+	vowels("laxmi")
+	
+	##PYSPARK
+	#Write a PySpark code to read a CSV file and write the data to a Parquet file.
+	df=spark.read.format("csv").load("s3:/text.csv")
+	df.write("parquet").save("s3:/test.parquet")
+	
+	#Add a new column "Senior" to a PySpark DataFrame based on the condition that if the age is greater than 50, set "Senior" to true, else false.
+	new_df=df.withColumn(df["senior"]).(when age <50,"false" ).otherwise("true")
+	
+	
+	
+	
+///////////////////////////////  WALMART 22 April 2024 1st round ///////////////
+
+Q1. Python programming -
+Find the total sum if the thief cannot steel from adjacent house but should have maximum amount.
+Hint: At any given time calculate the maximum amount of money.
+array=[2,3,1,9,5,6,5]
+
+
+Q2. Diff btw list and tuple
+
+Q3.What are the decorators in Python ? Does it execute at the beginning or end of the function?
+Ans.
+The basic idea behind decorators is that they take a function as an input, perform some kind of transformation or augmentation on that function, and then return a new function that incorporates the changes made by the decorator.
+
+Code-
+def my_decorator(func):
+    def wrapper():
+        print("Something is happening before the function is called.")
+        func()
+        print("Something is happening after the function is called.")
+    return wrapper
+
+@my_decorator
+def say_hello():
+    print("Hello!")
+
+say_hello()
+
+
+Q4.Specific rules to be executed whenever an exception occurs? How to do efficiently for different exception. Use decorator and do we need multiple decorators or one generic decorator?
+Ans.
+def handle_value_error(func):
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except ValueError as e:
+            print("ValueError occurred:", e)
+            # Perform specific actions for ValueError
+    return wrapper
+
+def handle_type_error(func):
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except TypeError as e:
+            print("TypeError occurred:", e)
+            # Perform specific actions for TypeError
+    return wrapper
+
+@handle_value_error
+def example_function(value):
+    if not isinstance(value, int):
+        raise ValueError("Value must be an integer.")
+    return value * 2
+
+@handle_type_error
+def another_function(value):
+    if not isinstance(value, str):
+        raise TypeError("Value must be a string.")
+    return value.upper()
+
+# Test the decorated functions
+result = example_function(10)  # No exception
+print("Result:", result)
+
+result = example_function("hello")  # ValueError will be raised
+
+result = another_function("python")  # No exception
+print("Result:", result)
+
+result = another_function(100)  # TypeError will be raised
+
+
+Q5.How memory management happens in Python? What kind of datastructures python used to manage this. What datastructures classes or variables are stored?
+
+Q6.What kind of storage-stack and heap memory? So what goes into each one of these?
+
+Q7.SQL-
+
+table1:
+
+studentname		subject		marks
+abs				english		80
+xyz				hindi		79
+ghi				maths		20
+
+
+q1. second highest marks among all studentname
+
+
+select studentname, sum(marks) as total_marks
+from table1
+groupBy studentname
+order by total_marks desc
+limit 1 offset 1
+
+
+q2.second highest marks in every subject.
+
+select studentname, subject ,dense_rank() over (partitionBy studentname,subject order by marks desc) as rank
+from table1
+where rank=2
+
+select studentname,subject,marks
+from
+(select subject,marks
+from table1
+groupBy studentname,subject,marks
+orderBy marks desc ) a
+limit 1 offset 1
+
+
+
+Q8. how to broadcast a connection_Driver in spark?
+connection_driver=
+
+
+df=spark.createDataFrame(['name','id'])
+
+braodcasted=sc.broadcast(connection_driver)
+braodcasted
+
+
+Q9. diff btw rdd or dataframes? When should you choose which one?
+
+Q10.What is Repartition?
+
+Q11. Huge volumes of data . Storing in nosql db but data is structured . Since ingesting hourly basis, some updates have happened with latest timestamp? 
+Task-
+-Persist the data
+-Handle the updates on same row and how to handle merge.
+-Save using pyspark
+In mysql automatically have primary keys and it will do updates.
+How to handle directly without making use of delta table?
+
+Q12. Hourly ingestion . How would you maintain the delta? How to design when there is overlap between the times.
+Maybe ingestion failed so the next one should pick the last one + current one.
+Hint-Persist the timezone and use it.
+
+Round2:
+
+Q1. Significance of having partitioning and bucketing in spark? In what cases do we need partitioning and bucketing?
+Q2. what will be the techniques to remove data skewness? write code to do so?
+Q3. diff memory management done to make it faster ? Different optimizations techniques ? What is serialization(converting data into machine understandable code)
+Q4.Diff btw broadcast variable vs accumulators?
+Q5.Diff types of joins? What is left semi and left anti join? How many column will be expected for a dummy table?
+Q6.Sql-
+
+A
+1
+1
+2
+
+B
+1
+1
+1
+3
+
+Tell me joins count for inner,left,right,full outer join, cross join?
+Same for-
+A
+1
+1
+
+B
+1
+1
+1
+
+Q7.Git commands-
+	i) How to check current branch you are using?
+	ii) How to pull the data?
+	iii) How to arrive a file to staging area
+	iv) How to check commit history to get logs
+
+Q8. Testing techniques. Testing packages/modules in python? Automation testcases?
+
+
+
+
+ ############## Commonwealth bank of australia ///////////////////////////////////////////////////////////////////////
+
+customer
+
+id 		name 		address		city		pincode
+1		abc			       whitefield	              bangalore	
+2		xyz						bangalore
+Q. List customers from same city
+
+Ans.
+SELECT c1.*   
+FROM customer c1   
+JOIN customer c2 ON c1.city = c2.city   
+WHERE c2.id <> c1.id;  
+
+
+abc,xyz		bangalore
+ghi		delhi
+ghi		delhi
+
+
+Q. first five characters and if not then add special characters(#)
+
+id		firstname		middlename		lastname
+1		laxmih			gaggagah		jjsjshhs
+
+
+Like ---->la###
+
+
+Ans.
+select id,
+case when length(firstname) >=5 then LEFT(firstname,5) else concat(firstname,'#') end as firstname,
+case when length(middlename) >=5 then LEFT(middlename,5) else concat(firstname,'#') end as middlename,
+case when length(lastname) >=5 then LEFT(lastname,5) else conact(lastname,'#') end as lastname
+From customer;
+
+
+Q. customername,customerid,departmentid,address
+customer and department are mandate,address can be empty
+
+3 tables---------->
+
+customer:
+id
+
+department:
+id
+
+address:
+Id
+
+Ans.
+Select customer_name,customerid,departmentid,address
+From customer c
+JOIN department d on c.customerid=d.customerid
+LEFT JOIN address a on c.customer_id=a.address_id
+
+Q.semi anti join?
+
+Ans.
+Semi-Anti Join:
+A semi-anti join combines these two concepts. It returns only the rows from the left table where there is no match found in the right table. In other words, it filters out the rows that have a matching row in the right table.
+
+
+In summary, a semi-join returns the matching rows from the left table,
+ while an anti-join returns the non-matching rows from the left table.
+
+-----
+A semi-join in SQL is a type of join that returns only the rows from the left table that have a match in the right table, without duplicating the rows from the left table. It is called a "semi-join" because it is a partial or semi-result of a regular join operation.
+• Semi-Join Result: {3, 4, 5} (Intersection of Set A and Set B)
+
+
+SELECT o.*  
+FROM orders o  
+WHERE o.customer_id IN (SELECT c.customer_id FROM customers c);  
+
+o/p:
+order_id  customer_id  order_date  
+1         101          2021-01-01  
+3         103          2021-01-03  
+
+---------
+ANTI JOIN--->
+• Anti-Join Result: {1, 2} (Set A - Set B)
+
+anti-join is a type of join that returns only the rows from the left table that do not have a match in the right table.
+
+SELECT o.*  
+FROM orders o  
+WHERE o.customer_id NOT IN (SELECT c.customer_id FROM customers c);  
+
+o/p:
+order_id  customer_id  order_date  
+2         102          2021-01-02  
+
+Examples-->
+Orders Table-->
+order_id  customer_id  order_date  
+1         101          2021-01-01  
+2         102          2021-01-02  
+3         103          2021-01-03  
+
+Customer Table-->
+customer_id  customer_name  
+101          John  
+103          Alice  
+105          Bob  
+
+-----------------------------
+
+Q. Balance details-debit,credit
+Top 3 customers who is having maximum savings balance?
+One customer can have mutiple account.
+
+customer 		
+id					account_id
+
+1			                                5000
+2			                                10000
+
+account_details:
+account_id		                         balances
+							
+1					5000	
+1					10000		
+2					6000	
+2					30000
+2					100
+
+Ans.
+SELECT
+    customer_id,
+    total_balance
+FROM (
+    SELECT
+        c.id AS customer_id,
+        SUM(ad.balance) AS total_balance,
+        ROW_NUMBER() OVER (ORDER BY SUM(ad.balance) DESC) AS rank
+    FROM
+        customer c
+    INNER JOIN
+        account_details ad ON c.account_id = ad.account_id
+    GROUP BY
+        c.id
+) AS RankedCustomers
+WHERE
+    rank <= 3;
+
+
+
+Select account_id, row_number() over (partitionBy account_id order by total_balances desc) as rank
+from
+(select account_id ,sum( balances)
+from account_details
+group by account_id) total_balances
+limit 3
+
+
+Q. give spark parameters for cluster with 10 nodes and 10 gb file?
+
+driver memory 2gb ,number of cores 5 ,executor memory 1 gb ,number of executors 10
+
+
+Q. what happens when you try to increase partitions using coalesce command?
+
+Q.updating/incremental load/history load?
+Q.Example of narrow and wide transformation? is filter a narrow transformation?
+Q.What is overhead memory in spark?
+Q.what does stages do in spark?
+Q.
+
+
+
+
+//////////////////// Stellantis round 1 /////////////////////////////////////////////////////////
+customer table----------->
+
+customer_id			order_id			order_date			order_amount
+
+1					124					29/04/2024			89928
+
+
+
+KPI:
+1. Recently - how recently the customer has placed an order with me?
+2. ftrequency - how frequently they have been placing an order?
+
+
+Q 1:
+
+select customer_id,max(order_date)
+from customer
+group by customer_id
+
+
+Q.2:
+select customer_id,count(*)
+from customer
+group by customer_id
+
+
+df=spark.read.format("csv").option(schema","true")
+
+df_final=df.select(df["customer_id"].count(*)).groupBy(df["customer_id"])
+
+
+/////////////////////////
+data in json --in s3 folder ---data from each brand
+
+ 
+
+
+//////////////////////////////// Birlasoft 29 April 2024 -1st round
+
+
+1. 
+from collections import Counter
+string="laxmi singh"
+
+occurences={}
+
+counting=string.Counter()
+print(counting)	
+
+
+///////////////
+
+Read a csv file in pyspark, apply transformations(add date), write to delta table
+
+
+df=spark.read.format("csv").option("header","true")
+
+df_transformed=df.withColumn(df["date"],current_date())
+
+df_transformed.write.format("delta").saveAsTable("path").mode("overwrite")
+
+/////////////////////////
+
+
+def count_columns(df):
+	columns=df.column()
+	total_count=columns.count()
+	
+	return total_count,columns
+	
+
+def transformation(df):
+	df=spark.read.format("csv").option("header","true")
+	df1=spark.read.format("csv").option("header","true")
+
+	existing_count_columns,existing_columns=count_columns(df)
+	new_count_columns,new_columns=count_columns(df1)
+	if (existing_count_columns > new_count_columns):
+		new=existing_columns-new_columns
+		df_transformed=df.withColumn(df["date"],current_date())
+
+	
+////////////////////// pysaprk
+
+Input
+col1,  col2,    col3
+1,John  USA     IT
+2,Tom   UK      Auto
+ 
+output
+col1, col2, col3, col4
+1      John  USA   IT
+
+df=spark.read.format("csv")
+
+df_second_Column=df.withColumn(col2,split(df["col1"],",").alias(df["col2"]))
+
+
+/////////
+SQL
+ 
+eno ename job
+1   abc  soft
+1   abc	 HR
+2   bca  HR
+2   bca  manager
+3   dca  TCA
+ 
+output
+ 
+eno   ename   job
+1     abc     soft
+2     bca     HR
+3     dca     TCA
+
+
+select eno,ename,row_number() over(order by job desc) as rank
+from customer
+where rank=1
+
+
+
+
+////////////////////////////////////  Kotak Mahindra 5/2/2024 1st round
+
+https://www.programiz.com/sql/online-compiler/
+
+
+CREATE TABLE EMPLOYEE (
+  Team1 TEXT NOT NULL,
+  Team2 TEXT NOT NULL,
+  MatchResult INTEGER
+);
+
+-- insert
+INSERT INTO EMPLOYEE VALUES ("RR" ,"KKR" ,2);
+
+INSERT INTO EMPLOYEE VALUES("MI" ,"CSK" ,2);
+
+INSERT INTO EMPLOYEE VALUES("RCB" ,"KXP" ,1);
+
+INSERT INTO EMPLOYEE VALUES("DD", "RR", 0);
+
+INSERT INTO EMPLOYEE VALUES("KKR", "RR", 1);
+
+INSERT INTO EMPLOYEE VALUES("CSK", "RCB", 2);
+
+INSERT INTO EMPLOYEE VALUES("KXP" ,"DD", 2);
+
+
+
+SQL:
+
+Team1 Team2 MatchResult
+
+RR KKR 2
+
+MI CSK 2
+
+RCB KXP 1
+
+DD RR 0
+
+KKR RR 1
+
+CSK RCB 2
+
+KXP DD 2
+
+
+
+Match Result descriptions:
+
+1 => Match won by Team 1
+
+2 => Match won by Team 2
+
+0 => Draw
+
+
+
+Output should have following columns
+
+
+
+Team Played Won Lost Draw
+
+RR 3 0 2 1
+
+CSK 2 1 1 0
+
+RCB 2 2 0 0
+
+
+2.Find date wise Sales in USD
+Sales		
+sales_date	sales_amount	currency
+01-Jan-16	500	            INR
+01-Jan-16	100	            GBP
+02-Jan-16	1000	            INR
+02-Jan-16	150	            GBP
+03-Jan-16	1500	            INR
+
+Exchange			
+source_currency	target_currency	exchange_rate	eff_start_date  
+INR	                USD	            0.014	    31-Dec-15
+INR	                USD	            0.015	    02-Jan-16
+GBP	                USD	            1.32	    20-Dec-15
+GBP	                USD	            1.3	        01-Jan-16
+GBP	                USD	            1.35	    10-Jan-16
+
+
+2.Find date wise Sales in USD
+Sales		
+sales_date	sales_amount	currency
+01-Jan-16	500	            INR
+01-Jan-16	100	            GBP
+02-Jan-16	1000	            INR
+02-Jan-16	150	            GBP
+03-Jan-16	1500	            INR
+
+Exchange			
+source_currency	target_currency	exchange_rate	eff_start_date  
+INR	                USD	            0.014	    31-Dec-15
+INR	                USD	            0.015	    02-Jan-16
+GBP	                USD	            1.32	    20-Dec-15
+GBP	                USD	            1.3	        01-Jan-16
+GBP	                USD	            1.35	    10-Jan-16
+
+2.Find date wise Sales in USD
+Sales		
+sales_date	sales_amount	currency
+01-Jan-16	500	            INR
+01-Jan-16	100	            GBP
+02-Jan-16	1000	            INR
+02-Jan-16	150	            GBP
+03-Jan-16	1500	            INR
+
+Exchange			
+source_currency	target_currency	exchange_rate	eff_start_date  
+INR	                USD	            0.014	    31-Dec-15
+INR	                USD	            0.015	    02-Jan-16
+GBP	                USD	            1.32	    20-Dec-15
+GBP	                USD	            1.3	        01-Jan-16
+GBP	                USD	            1.35	    10-Jan-16
+
+
+Employee Performance Tracking System:
+
+
+
+Use Case:
+
+Design a data model for an employee performance tracking system. The system should store information about employees, their projects, and performance metrics. It should support the analysis of individual and team performance over time.
+
+
+
+Requirements:
+
+Include tables for employees, projects, and performance metrics.
+Define the necessary columns for each table.
+Write a SQL query to retrieve the top-performing employees based on specific performance criteria.
+
+
+exhange_df=exhange_df.withColumn("last_date",when(lead(eff_start_date,1)-1).over(windowPartition))),0).otherwise("null"))
+final_df=sales_df.join(exchnage_df,sales_df.currency=exchnage_df.source_currency).withColumn("SalesInUSD",sales_amount*exchange_rate).filter(sales_df.sales_date>=exchnage_df.eff_start_date and sales_df.sales_date<exhange_df.last_date)
+
+
+///////////////////////////////////  ///////////////////////////////////////
+
+ID	Trans_Value	Date
+1	10			01-01-2024
+2	20			02-01-2024
+1	30	        03-01-2024
+2	40	        01-01-2024
+3	50	        01-01-2024
+4	60	        02-01-2024
+2	40	        01-02-2024
+3	50	        01-02-2024
+4	60	        02-02-2024
+2	40	        01-03-2024
+3	50	        01-03-2024
+4	60	        02-04-2024
+ 
+ 
+	Q. SQL
+Return top 3 customer IDs who have done highest transactions in each month 
+
+Ans.
+SELECT month, customer_id, total_transaction  
+FROM (  
+    SELECT 
+        EXTRACT(MONTH FROM Date) AS month, 
+        ID AS customer_id, 
+        SUM(Trans_Value) AS total_transaction,  
+        ROW_NUMBER() OVER (PARTITION BY EXTRACT(MONTH FROM Date) ORDER BY SUM(Trans_Value) DESC) AS row_num  
+    FROM your_table_name  
+    GROUP BY EXTRACT(MONTH FROM Date), ID  
+) AS subquery  
+WHERE row_num <= 3  
+ORDER BY month, total_transaction DESC;  
+ 
+
+ 
+
+
+
+////////////// BIRLASOFT
+
+	Q. Suppose there is a dataframe called dfCust, such that - 
+dfCust = {CustCode, CustFName, CustLName}
+-------------------------------------------
+Q.Please transform the input data into the following data frame, dfOut as:
+dfOut = {CustomerID, CustomerFullName}
+-------------------------------------------
+Transformation Mapping
+-------------------------------------------
+1) CustomerID := Remove "CX" prefix from CustCode and store the integer value. 
+Example: if CustCode is CX10705115 then CustomerID would be 10705115
+ 
+2) CustomerFullName := concatenate CustFName and CustLName, with a space in between.
+
+Ans.
+
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, concat, regexp_replace,substring
+
+# Create a SparkSession
+spark = SparkSession.builder \
+    .appName("Customer Transformation") \
+    .getOrCreate()
+
+# Sample DataFrame dfCust
+data = [("CX10705115", "John", "Doe"),
+        ("CX20907423", "Alice", "Smith"),
+        ("CX30508935", "Bob", "Johnson")]
+
+columns = ["CustCode", "CustFName", "CustLName"]
+
+dfCust = spark.createDataFrame(data, columns)
+
+  
+# Transformation 1: CustomerID  
+dfOut = dfCust.select(substring(col("CustCode"), 3).cast("integer").alias("CustomerID"))  
+  
+# Transformation 2: CustomerFullName  
+dfOut = dfOut.select("*", concat(col("CustFName"), lit(" "), col("CustLName")).alias("CustomerFullName"))  
+  
+# Select the required columns  
+dfOut = dfOut.select("CustomerID", "CustomerFullName")  
+
+
+
+----------------------------------------------------------------------------------------------------------------------------
+
+dfCust=spark.read.format("customer")
+
+
+dfOut=dfCust.select("CustomerID",ltrim(dfCust["CustCode"],2))\
+			.select("CustomerFullName",concat("CustFName"," ","CustLName"))
+dfOut.display()
+
+
+Q. create udf and write syntax for map and fkatmap transformations
+
+def test_udf(dfCust):
+	dfCust=rdd.map(lambda x : x)
+	
+	
+Q. write syntax for broadcast tables join?
+tablea
+
+
+TableA_broadcasted_join=tablea.broadcast()
+
+
+//////////////////////////////  KOCH 1st round on 14 May 2024
+
+employee table:
+
+emp_id salary
+1		1
+2		10
+
+
+
+
+departments:
+department_name		dept_id		emp_id
+IT					1			1
+Finance				2			2
+
+
+IT 		1
+IT		2
+IT
+IT
+1. second highest salary in the each department
+
+select *,dense_rank() over(partitionBy emp_id,department_name order by salary desc) as rank
+from
+(select emp_id,department_name,avg(salary)
+from employee e join department d
+on e.emp_id=d.emp_id
+group by emp_id,department_name)a
+where rank=2
+
+
+-----
+2.
+
+x=True
+print(x+1)
+
+3.
+dict1={'key1':'value1',key2}
+
+dict2={}
+
+4.extend vs append
+
+
+
+---
+parquet_file
+h1	h2	h3
+
+
+t1	t2	t3
+
+
+import-->
+
+df=spark.read.format("parquet").load("path").option("header",True).option("schema",[("t1_1")("
+df_schema=[(
+
+
+--- 
+
+money-10k
+50%(utilize)
+
+apple_share-->20rs  -->  <=15% profit -->exit
+
+dynamically,buy at a certain price
+
+
+utilization=0.50
+
+def buy_shares(share_name,share_amount,balance):
+
+steps:
+1.Consume input values-share_name,share_amount,balance,person_id
+2.I/p--->Json
+o/p:apple_share,exit_amount,balance,person_id
+
+	
+	
+	
+def add(x,y):
+	
+
+
+
+

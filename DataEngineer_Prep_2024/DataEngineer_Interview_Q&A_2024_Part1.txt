@@ -1,0 +1,2615 @@
+
+
+Row_number                     	Rank	Dense_rank
+1	1	1
+2	1	1
+3	2	3
+4	3	4
+5	4	4
+6	4	6
+7	5	7
+		
+
+
+ADF
+ADFLS
+Databricks
+Spark
+Synapse
+Cosmos DB
+Azure Integration
+------
+
+Interview Dec 2023 -IDC Dubai-------------------------------------------------------->
+
+Ethihad------->
+1.Different ditribution keys in synapse like hash and round robin and which one is used when?
+2.Real time streaming like kafka …how is its getting called etc?
+3.Why parquet format not support upserts? What can be done instead?
+4.
+
+
+
+------------------------------------------------------------------------
+Q.Find the latest customer for an id in sql?
+Customer
+
+id		name		date
+1		a			30-07-2023
+1		a			29-07-2023
+2		b			30-07-2023
+2		b			29-07-2023
+
+
+	i) Using row_number----->
+	
+	 ROW_NUMBER() assigns a unique number to each row e.g 1,2,3,4
+	 RANK() provides a unique rank with gaps e.g 1,1,3
+	 DENSE_RANK() provides a unique rank without gaps  e.g 1,1,2
+	
+	
+	
+
+Select id,name,date
+From (
+Select id,name,date,row_number() over (partition by id order by date desc) as row_num from customer_table
+) rank
+Where row_num=1
+
+Ii) using max and groupby
+
+Select id,name,max(date) as latest_date
+From table
+Group by id,name
+
+Ii)lead 
+
+select id,name,date
+From (select id,name,lead(date) over( partition by id order by date desc) as latest_date)a
+Where a is Null
+
+
+Q.Find the customers who made all the purchases in sql?
+
+Customer
+c1		car
+c1		bike
+c1		plane	
+c2		bike
+c3		car
+
+Product
+P1 	car
+P2	plane
+P3	bike
+
+Customer Product
+c1	p1
+c2	p2
+c3	p3
+c2	p1
+c1	p2	
+c3	p1
+c1	p3
+
+
+SELECT c.Customer_id
+FROM Customer c
+JOIN Product p ON c.Product = p.Product
+WHERE NOT EXISTS (
+    SELECT pr.Product_id
+    FROM Product pr
+    WHERE NOT EXISTS (
+        SELECT cp.Customer_id
+        FROM Customer_Product cp
+        WHERE cp.Customer_id = c.Customer_id AND cp.Product_id = pr.Product_id
+    )
+);
+
+
+
+	Q. Find the total revenue per month  in sql and write this in pyspark code?
+|revenue|  date|]
++-------+------+
+| 566.92|13-Jul|
+|1842.57|23-May|
+|1963.64|07-Nov|
+|1501.06|02-Jan|
+| 586.19|16-Apr|
+| 500.19|15-Apr|
+
+O/p---->
+  date  revenue
+0  Apr  1086.38
+1  Jan  1501.06
+2  Jul   566.92
+3  May  1842.57
+4  Nov  1963.64
+
+In sql----->
+Select sum(revenue),date_format(date,'MMM') as date
+From table
+Group by date_format(date,'MMM')
+
+In pyspark--->
+
+from pyspark.sql import SparkSession
+from pysaprk.sql.functions import sum,date_format
+spark=SparkSession.builder.appName("TotalRevenuePerMonth").getOrCreate()
+Df=spark.read.format("csv").option("header","true").load("file.csv")
+Result=df.groupBy(date_format("date","MMM").alias("month")).agg(sum("revenue").alias("total_revenue))
+Result.show()
+
+In Python-------->
+import pandas as pd
+
+# Assuming you have a list of dictionaries representing your data
+data = [
+    {"revenue": 566.92, "date": "13-Jul"},
+    {"revenue": 1842.57, "date": "23-May"},
+    {"revenue": 1963.64, "date": "07-Nov"},
+    {"revenue": 1501.06, "date": "02-Jan"},
+    {"revenue": 586.19, "date": "16-Apr"},
+    {"revenue": 500.19, "date": "15-Apr"},
+]
+
+# Create a DataFrame from the list
+df = pd.DataFrame(data)
+
+# Convert the 'date' column to a datetime type
+df['date'] = pd.to_datetime(df['date'], format='%d-%b')
+
+# Extract the month from the date and calculate total revenue per month
+result = df.groupby(df['date'].dt.strftime('%b'))['revenue'].sum().reset_index()
+
+# Display the result
+print(result)
+
+
+In sql:
+ SELECT SUBSTRING(date, 4, 3) AS month, SUM(revenue) OVER (PARTITION BY SUBSTRING(date, 4, 3) ORDER BY date) AS cumulative_revenue FROM revenue_table
+
+Pyspark--------->
+df = df.withColumn("month", F.substring(df["date"], 4, 3))
+
+# Define a window specification partitioned by month and ordered by date
+window_spec = Window().partitionBy("month").orderBy("date")
+
+# Calculate the cumulative sum of revenue for each month
+df = df.withColumn("cumulative_revenue", F.sum("revenue").over(window_spec))
+
+# Display the result
+df.select("month", "cumulative_revenue").distinct().show(truncate=False)
+
+
+
+Q.Get me the element that is least repeated in the below list with count in python?
+
+
+List1=[a,b,c,b,d,c,d]
+
+from collections import counter
+List1=['a','b','c','a','b']
+elem_count=counter(list1)
+Least_elem=min(elem_count,key=elem_count.get)
+Least_elem_Count=elem_count[least_elem]
+
+//////////////////////
+	
+
+
+Q. Diff between Azure Data factory and Databricks
+Ans.
+Azure Data Factory (ADF):
+1. Purpose:
+	• ADF is an ETL (Extract, Transform, Load) service designed for building, scheduling, and managing data pipelines. It is primarily used for data integration and orchestration.
+2. Data Movement and Transformation:
+	• ADF is focused on moving and transforming data between different data stores. It allows you to ingest data from various sources, transform it, and then load it into a destination data store.
+3. Visual Interface:
+	• ADF provides a visual interface for designing and monitoring data pipelines. It allows users to create pipelines using a drag-and-drop interface without extensive coding.
+4. Integration:
+	• ADF integrates with a wide range of Azure and on-premises data sources and services. It supports connectors for various data platforms.
+5. Scalability:
+	• ADF can scale to handle large volumes of data and supports parallel data processing.
+Azure Databricks:
+6. Purpose:
+	• Databricks is an Apache Spark-based analytics platform designed for big data analytics and machine learning. It provides a collaborative environment for data scientists and engineers.
+7. Advanced Analytics and Processing:
+	• Databricks is used for advanced analytics, data exploration, and large-scale data processing. It supports distributed computing using Apache Spark, making it suitable for complex data transformations and analytics.
+8. Notebooks and Collaboration:
+	• Databricks provides collaborative notebooks for writing code in multiple languages (e.g., Python, Scala, SQL). It is widely used for exploratory data analysis and machine learning model development.
+9. Machine Learning:
+	• Databricks has integrated machine learning capabilities, allowing users to build and deploy machine learning models at scale.
+10. Scalability:
+	• Databricks is highly scalable, leveraging the distributed computing power of Apache Spark. It can handle large datasets and complex analytical workloads.
+Use Cases:
+• Use ADF When:
+	• You need to move and transform data between different data stores.
+	• You want a visual interface for designing data pipelines.
+	• Your primary focus is on data integration and orchestration.
+• Use Databricks When:
+	• You need advanced analytics and distributed computing capabilities.
+	• You want to perform data exploration, analytics, and machine learning in a collaborative environment.
+	• Your use case involves complex data transformations and large-scale processing.
+
+
+-----------------------------------------
+Q.What are the different steps for creating ETL process in ADF?
+Ans.
+1. Steps for Creating ETL Process in ADF:
+Create a Data Factory:
+Start by creating an Azure Data Factory in the Azure Portal.
+
+Create Datasets:
+Define datasets representing your source and destination data.
+
+Create Linked Services:
+Set up linked services to connect to your data sources and destinations.
+
+Create Pipelines:
+Design pipelines to orchestrate the ETL process, using activities such as Copy Data and Data Flow.
+
+Define Data Flow:
+If needed, design data flows to transform and manipulate data within the pipeline.
+
+Debug and Test:
+Validate and debug your pipeline before publishing.
+
+Publish and Trigger:
+Publish your changes and trigger the pipeline manually or set up scheduling.
+
+---------------------------------------
+Q.How can you schedule a pipeline in databricks?
+Ans.
+ you can schedule a notebook as a job using the Databricks UI or the REST API. You define the frequency and parameters for the job, allowing it to run at specified intervals
+
+
+
+Q.Diff btw ADLS gen1 and gen2?
+Ans.
+• ADLS Gen1:
+	• Hierarchical namespace is not supported.
+	• It provides lower throughput.
+	• Integrated with Azure Blob Storage but has a separate namespace.
+• ADLS Gen2:
+	• Supports hierarchical namespace for organizing data.
+	• Offers higher throughput and compatibility with Azure Blob Storage.
+	• Unified storage solution with capabilities of both Blob Storage and ADLS Gen1.
+
+--------------------------
+
+
+Q.How do you handle data security and authentication in Azure? (system based security are Azure AD,RBAC)
+Q.Monitor and troubleshoot data pipelines in azure?
+Ans.
+• Use Azure Monitor and Azure Log Analytics for monitoring.
+• Set up alerts for key metrics.
+• Leverage Azure Data Factory Monitoring and Management APIs.
+• Examine pipeline runs and activity runs for troubleshooting.
+
+
+Q.Key componets and architecture of ADF?
+Ans.
+• Key Components:
+	• Datasets, Linked Services, Pipelines, Data Flows, Triggers, Activities.
+• Architecture:
+	• ADF follows a cloud-based, serverless architecture.
+	• Orchestrates data workflows using data pipelines.
+
+
+
+Q.Optimize and tune performnace in azure databricks?
+Ans.
+• Use cluster autoscaling for dynamic resource allocation.
+• Optimize the Spark code for parallel processing.
+• Choose appropriate instance types for clusters.
+• Utilize Delta Lake for optimized data storage.
+
+Q.Compare 1 million record with another 1 million record. Find the latest insert,delete and modify records into 3 different buckets in pysparks?
+
+Q.Cosmos DB
+Ans.
+• Cosmos DB: A globally distributed, multi-model database service by Microsoft Azure.
+• Supports multiple APIs including SQL, MongoDB, Cassandra, Gremlin, and Table.
+
+
+Q.Explain of CDC in data integration?
+Ans.
+• CDC: Identifies and captures changes made to data.
+• Involves tracking inserts, updates, and deletes.
+• Helps in synchronizing source and destination data efficiently.
+
+
+
+
+##############################  sample questions and answers
+
+Question 1: 
+Given a large dataset with multiple columns, each containing various types of data (numeric, string, etc.), you are tasked with performing the following tasks:
+ 
+	1. Identify the columns with missing values.
+	
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, mean, when
+
+spark = SparkSession.builder.appName("DataProcessing").getOrCreate()
+
+# Assuming the dataset is in CSV format, adjust accordingly if it's in a different format
+df = spark.read.csv("path/to/your/dataset.csv", header=True, inferSchema=True)
+
+missing_cols = [col_name for col_name in df.columns if df.filter(col(col_name).isNull()).count() > 0]
+
+
+
+2.For numeric columns with missing values, replace the missing values with the mean of the respective columns.
+
+for col_name in missing_cols:
+    if col(df[col_name]).dataType == 'double':
+        mean_value = df.select(mean(col_name)).collect()[0][0]
+        df = df.withColumn(col_name, when(col(col_name).isNull(), mean_value).otherwise(col(col_name)))
+
+
+	1. For string columns with missing values, replace the missing values with the mode of the respective columns.
+
+for col_name in missing_cols:
+    if col(df[col_name]).dataType == 'string':
+        mode_value = df.groupBy(col_name).count().orderBy(col("count").desc()).first()[col_name]
+        df = df.withColumn(col_name, when(col(col_name).isNull(), mode_value).otherwise(col(col_name)))
+
+
+	1. Create a new column that concatenates two existing string columns with a separator, and make all the values uppercase.
+separator = "_"
+new_column_name = "concatenated_columns"
+
+df = df.withColumn(new_column_name, col("string_column1") + separator + col("string_column2"))
+
+
+Implement this logic using PySpark and explain the steps you would take to achieve this efficiently, especially considering the potential size of the dataset.
+For efficiency with large datasets, you can consider caching the DataFrame
+ (df.cache()) 
+after reading it to avoid recomputing transformations, and use Spark's built-in optimizations for data processing. Additionally, parallelism can be adjusted based on the available resources and the cluster configuration.
+
+-------------------------------
+Question 2:
+Imagine you are working on a Spark job that processes a massive amount of data stored in a distributed file system. The data is distributed across multiple nodes, and each record represents a user interaction on a website, containing information such as user ID, timestamp, page visited, and the duration of the visit.
+ 
+Your task is to find the top three pages with the highest average duration of visits, considering only pages that have been visited by more than 100 unique users. Additionally, you need to ensure that your solution is scalable and efficient for handling large-scale distributed data.
+ 
+Explain how you would approach this problem using PySpark, outlining the key steps and transformations you would apply to achieve the desired result. Consider factors such as data partitioning, caching, and any optimizations you might implement.
+
+Ans.
+# Assuming data is in a parquet file
+df = spark.read.parquet("path/to/your/data")
+df.filter(col("user_id).isNotNull() & col("timestamp").isNotNull() & col("page").isNotNull() col("duration").isNotNull()
+
+grouped_df=df.groupBy("page).agg(countDistinct("userid").alias("unique_users"),avg(col("duration")).alias("avg_duration")
+filtered_df=grouped_df.filter(col("unique_users")>100)
+
+result_df=filtered_df.orderBy(col("avg_duration").desc()).limit(3)
+result_df.show()
+
+Optimization------------>
+1.Partitioning:
+	• Ensure that the data is appropriately partitioned. If the data is not evenly distributed across partitions, you might want to repartition it based on the "page" column.
+df = df.repartition("page")
+
+• Caching:
+	○ If the DataFrame is going to be used multiple times in the subsequent transformations, you may consider caching it to avoid recomputation.
+df.cache() 
+• Broadcasting:
+	○ If there are smaller DataFrames involved in joins, consider using broadcast hints to optimize performance.
+
+spark.conf.set("spark.sql.autoBroadcastJoinThreshold", -1) # Disable auto-broadcast for this query
+• Partition Pruning:
+	○ Leverage partition pruning by filtering data based on conditions that match the partition columns.
+
+df = df.filter(col("date") >= "2023-01-01") 
+• Adjust Spark Configuration:
+	○ Depending on your cluster configuration and available resources, you may need to adjust Spark configurations such as executor memory, number of executors, and driver memory.
+
+spark.conf.set("spark.executor.memory", "8g")
+ spark.conf.set("spark.executor.instances", 10) 
+spark.conf.set("spark.driver.memory", "4g")
+
+
+	Q. Diff btw Repartition and coalesce-------->
+	
+repartition(numPartitions: int, *cols: str):
+	• repartition is used to increase or decrease the number of partitions in a DataFrame.
+	• It involves a full shuffle of the data, which means data is reshuffled across the new number of partitions.
+	• It can be used to increase or decrease the level of parallelism in your transformations.
+Example:
+df_repartitioned = df.repartition(8, "column_name")
+
+
+coalesce(numPartitions: int):
+	• coalesce is used to decrease the number of partitions in a DataFrame.
+	• It minimizes data movement by merging existing partitions whenever possible, and it does not perform a full shuffle.
+	• It is more efficient than repartition for reducing the number of partitions but is not suitable for increasing the number of partitions.
+Example:
+df_coalesced = df.coalesce(4)
+
+-----------------------------
+Question 3:
+ 
+You are working with a large JSON dataset that represents user interactions on a website. The JSON data is hierarchical and contains nested structures. Each record in the dataset represents a user session and includes information about the user, the pages visited, and actions taken on each page.
+A sample JSON record looks like this:
+ 
+ 
+{
+  "user_id": "123",
+  "session_id": "456",
+  "timestamp": "2023-11-30T10:30:00",
+  "pages": [
+    {
+      "page_id": "page1",
+      "duration": 120,
+      "actions": ["click", "scroll"]
+    },
+    {
+      "page_id": "page2",
+      "duration": 60,
+      "actions": ["click"]
+    }
+    // ... potentially more pages
+  ]
+}
+ 
+Your goal is to transform this JSON data into a flat structure suitable for analysis. Specifically, you need to create a new record for each user-page combination, with columns such as user_id, session_id, timestamp, page_id, duration, and actions.
+ 
+Describe the steps and transformations you would use in a PySpark or a similar distributed data processing framework to achieve this transformation efficiently, considering the potential scale of the dataset. Address challenges such as handling nested structures, exploding arrays, and ensuring optimal performance.
+
+ANS.
+ Explode function is used to transform a column of arrays or maps into multiple rows, creating a new row for each element in the array or map
+
+
+df = spark.read.json("path/to/your/data.json")
+df_flat = df.select(
+    col("user_id"),
+    col("session_id"),
+    col("timestamp"),
+    explode("pages").alias("page")
+)
+
+df_flat = df_flat.select(
+    col("user_id"),
+    col("session_id"),
+    col("timestamp"),
+    col("page.page_id").alias("page_id"),
+    col("page.duration").alias("duration"),
+    col("page.actions").alias("actions")
+)
+df_flat = df_flat.select(
+    col("user_id"),
+    col("session_id"),
+    col("timestamp"),
+    col("page_id"),
+    col("duration"),
+    explode("actions").alias("action")
+)
+df_flat.show()
+
+Optimizations---------->
+• Caching:
+	○ If you plan to use the DataFrame multiple times in subsequent operations, consider caching it to avoid recomputation.
+
+df_flat.cache() 
+• Adjust Spark Configuration:
+	○ Depending on your cluster configuration and available resources, you may need to adjust Spark configurations such as executor memory, number of executors, and driver memory.
+
+spark.conf.set("spark.executor.memory", "8g") 
+	spark.conf.set("spark.executor.instances", 10) 
+	spark.conf.set("spark.driver.memory", "4g")
+
+• Partitioning:
+	○ Adjust the number of partitions based on the size of your data and the available resources.
+
+df_flat = df_flat.repartition("user_id") 
+• Broadcasting:
+	○ If you have smaller DataFrames involved in joins, consider using broadcast hints to optimize performance.
+
+spark.conf.set("spark.sql.autoBroadcastJoinThreshold", -1) # Disable auto-broadcast for this query
+• Schema Evolution:
+If your JSON data may have evolving schemas, consider handling schema evolution using the mergeSchema option.
+
+df = spark.read.option("mergeSchema", "true").json("path/to/your/data.json") 
+
+----------------------------------
+
+Question 4: 
+Spark Shuffle Mechanism:
+	· Describe the Spark shuffle mechanism and its significance in distributed data processing.
+	· How does Spark handle data shuffling during operations like groupBy and join?
+Ans.
+Redistributing and reorganizing data across the partitions of a Spark DataFrame or RDD (Resilient Distributed Dataset)
+
+The shuffle is typically triggered by operations that require data to be rearranged across partitions, such as groupBy and join. The shuffle mechanism plays a vital role in optimizing data processing and enabling parallelism in distributed computing environments.
+
+Significance:
+11. Repartitioning Data:
+	• The shuffle mechanism is responsible for redistributing data across partitions to optimize the parallel processing of subsequent operations.
+	• It enables the data to be repartitioned based on certain criteria, such as the grouping key in a groupBy operation.
+12. Ensuring Data Co-location:
+	• Shuffling is essential when operations require data co-location, such as when joining two datasets based on a common key. It ensures that the data with the same key resides in the same partition.
+13. Optimizing Parallelism:
+	• By redistributing and co-locating data, the shuffle mechanism facilitates parallel execution of tasks across the nodes in a Spark cluster, maximizing resource utilization and improving performance.
+14. Supporting Aggregations:
+	• Operations like groupBy involve aggregations that require data to be grouped based on a specific key. The shuffle mechanism ensures that the relevant data is brought together for efficient aggregation.
+15. Handling Skewed Data:
+	• In scenarios where the data is skewed (i.e., certain keys have a significantly higher frequency), the shuffle mechanism helps balance the data distribution, preventing performance bottlenecks caused by uneven workload.
+
+Operations---------------->
+16. Map Phase:
+	• Similar to groupBy, the join operation starts with a map phase where each executor processes data locally based on the join key(s).
+	• Intermediate key-value pairs are created for each DataFrame involved in the join.
+17. Partitioning:
+	• The intermediate key-value pairs are partitioned based on the join key(s) of both DataFrames.
+	• Spark uses hash partitioning to ensure that pairs with the same join key end up in the same partition.
+18. Shuffle Write:
+	• The intermediate data is written to disk, and the shuffle write phase occurs. Each executor writes its output to a set of files on the local disk, organized by partition.
+19. Shuffle Read:
+	• Executors fetch the data they need for their partition from other executors, involving data exchange between nodes.
+20. Join Phase:
+	• The fetched data is used to perform the actual join operation. The join can be performed locally if both sides of the join have data in the same partition, or it might involve additional shuffling if the keys are not co-located.
+21. Reduce Phase:
+	• The final result is obtained by merging the results from all partitions.
+
+
+
+-------------------------
+Question 5: 
+Optimizing Spark Jobs:
+	· What strategies would you employ to optimize the performance of a Spark job with large datasets?
+	· How can you minimize data shuffling and reduce the likelihood of a bottleneck in a Spark application?
+
+Ans.
+
+1.Partitioning and Shuffling:
+	• Optimal Partitioning: Choose an appropriate number of partitions and partitioning column(s) for your data. A well-partitioned dataset can improve parallelism and reduce shuffling.
+	• Custom Partitioning: If default hash partitioning is not optimal, consider using custom partitioning strategies, such as range or hash partitioning, based on the characteristics of your data.
+
+2.Broadcast Joins:
+•  Broadcasting a smaller DataFrame in a join operation can significantly reduce the amount of data that needs to be shuffled.
+from pyspark.sql.functions import broadcast
+# Large DataFrame
+df_large = spark.read.parquet("large_data.parquet")
+# Small DataFrame to be broadcasted
+df_small = spark.read.parquet("small_data.parquet")
+# Performing a broadcast join
+result_df = df_large.join(broadcast(df_small), "common_key")
+
+3.Data Caching:
+• Explanation: Caching or persisting frequently used DataFrames avoids recomputing the same data and improves performance.
+
+# Caching a DataFrame
+df_cached = df.persist()
+# Unpersist when the cached data is no longer needed
+df_cached.unpersist()
+
+
+4.
+Adjusting Memory Configuration:
+• Explanation: Adjusting Spark configuration settings for executor memory and overhead helps ensure sufficient memory for tasks.
+• spark.conf.set("spark.executor.memory", "4g") 
+• spark.conf.set("spark.executor.memoryOverhead", "1g")
+
+
+5.
+Enable Speculative Execution:
+• Explanation: Enabling speculative execution helps mitigate the impact of straggler tasks by launching duplicate tasks on different nodes.
+• spark.conf.set("spark.speculation", "true")
+
+6.
+Partition Pruning:
+• Explanation: Leverage partition pruning by filtering data early in your job based on partition columns.
+• df_filtered = df.filter(col("date") >= "2023-01-01")
+
+7.
+Avoiding Wide Transformations:
+• Explanation: Prefer narrow transformations over wide transformations when possible to reduce the need for data shuffling.
+# Prefer narrow transformations (e.g., map, filter) over wide transformations (e.g., groupBy, join)
+• df_transformed = df.filter(col("column1") > 10).select("column2", "column3") 
+
+8. Dynamic Allocation:
+• Enabling dynamic allocation allows Spark to dynamically adjust the number of executors based on the workload.
+• spark.conf.set("spark.dynamicAllocation.enabled", "true")
+
+Compression:
+• Explanation: Using compression for intermediate data and storage reduces the amount of data shuffled and stored on disk.
+• spark.conf.set("spark.io.compression.codec", "snappy")
+
+Parellisim:
+# Repartitioning to a specific number of partitions
+df_repartitioned = df.repartition(8, "column_name")
+
+-----------------------------
+Question 6: 
+Broadcast Variables in Spark:
+			· Explain the concept of broadcast variables in Spark. When and why would you use them?
+			· Provide an example scenario where using broadcast variables significantly improves the performance of a Spark job.
+
+Ans.
+ Large read-only data structures, such as lookup tables or reference data, to all tasks in a Spark job. Broadcast variables help minimize data transfer over the network and improve the efficiency of Spark applications by avoiding redundant data distribution.
+Broadcast variables are immutable shared variables that are cached and made available to all tasks across the cluster.
+
+When to use---->
+Most beneficial when the size of the data is large enough to cause a significant amount of network transfer overhead during task execution.
+
+Why--->
+• Efficient Data Distribution: 
+Broadcast variables help in distributing data efficiently to all worker nodes. 
+Instead of transferring the data separately to each node, Spark broadcasts the variable to all nodes, reducing network overhead.
+• Reduction in Task Execution Time: 
+By avoiding redundant data transfer, broadcast variables can significantly reduce the time it takes for tasks to execute, leading to improved overall job performance.
+
+----------------------
+Ques.
+Spark DAG (Directed Acyclic Graph):
+			· What is the Spark DAG, and how does it represent the execution plan of a Spark application?
+			· How can understanding the DAG be helpful in optimizing and troubleshooting Spark applications?
+Ans.
+DAG represents the logical execution plan of a Spark application. 
+It is a sequence of stages, where each stage consists of a set of tasks.
+The DAG is a directed graph because it indicates the flow of data and dependencies between transformations and actions in a Spark job.
+The DAG is created when transformations are applied, and it is optimized before execution.
+
+Vertices represent RDDs (Resilient Distributed Datasets) or DataFrames resulting from transformations.
+Edges represent dependencies between transformations. Each edge connects a parent RDD or DataFrame to a child RDD or DataFrame.
+
+
+Optimizing Spark Applications:
+	• Query Optimization: Understanding the DAG helps in optimizing the Spark application's query plan. Developers can analyze the DAG to identify opportunities for performance improvements, such as reordering or minimizing operations.
+	• Caching Strategies: Examining the DAG helps in making informed decisions about caching intermediate results, avoiding unnecessary recomputation of expensive operations.
+	• Partitioning and Shuffling: Analyzing the DAG helps in optimizing partitioning strategies to minimize shuffling and improve data locality.
+Troubleshooting Spark Applications:
+	• Dependency Analysis: The DAG provides a clear visualization of dependencies between stages and tasks. This is valuable for diagnosing issues related to data dependencies.
+	• Task Level Information: Examining the DAG can help identify tasks that are taking longer to execute, aiding in the identification of bottlenecks.
+	• Resource Utilization: Understanding the DAG assists in evaluating the usage of resources like CPU and memory across stages, helping identify resource-related problems.
+Debugging and Profiling:
+	• Execution Flow: The DAG provides a high-level view of the execution flow, aiding in understanding the sequence of transformations and actions.
+	• Visual Debugging: Visualization tools can represent the DAG graphically, making it easier to comprehend the structure and troubleshoot issues.
+Query Optimization Techniques:
+	• Predicate Pushdown: Analyzing the DAG helps in identifying opportunities for predicate pushdown to reduce the amount of data processed early in the execution.
+	• Broadcast Joins: Identifying broadcast joins in the DAG can help optimize join operations by minimizing data shuffling.
+Cost-Based Optimization:
+	• Cost Estimation: Understanding the DAG helps Spark's Catalyst optimizer make informed decisions based on cost estimates for different execution plans.
+
+Access the DAG:
+physical_plan = grouped_df._jdf.queryExecution().toString() 
+
+
+
+
+Q. Explain Predicate Pushdown
+
+Ans.
+Improve the performance of data processing by pushing filtering conditions (predicates) as close to the data source as possible. 
+The idea is to filter out unnecessary data early in the execution plan, reducing the amount of data that needs to be processed.
+
+filtered_df = employee_df.filter(employee_df["salary"] > 50000) 
+
+Question 8: 
+Dynamic Allocation in Spark:
+			· Describe dynamic allocation in Spark. When is it beneficial, and how does it impact resource management?
+			· What configurations and conditions would you consider when deciding to enable or disable dynamic allocation?
+Ans.
+To request and release executor resources dynamically during its execution. Instead of statically allocating resources at the beginning of the job, dynamic allocation adapts to the workload by acquiring or releasing resources based on the actual demand
+
+• Variable Workloads: Dynamic allocation is particularly beneficial when the workload of a Spark application varies over time. It allows the application to acquire more resources when the workload increases and release resources when the workload decreases.
+• Cost Efficiency: In cloud environments where resources are billed based on usage, dynamic allocation helps optimize costs by acquiring resources only when needed.
+• Multi-tenancy: In shared environments, where multiple Spark applications or users coexist, dynamic allocation allows better resource sharing and utilization.
+
+-- Configuring dynamic allocation in Spark submit
+spark-submit --conf spark.dynamicAllocation.enabled=true ...
+
+Question 9: 
+Fault Tolerance in Spark:
+			· Explain the fault tolerance mechanisms in Spark, particularly focusing on RDD lineage and recomputation.
+			· How does Spark recover from a worker node failure during the execution of a job?
+Ans.
+1. RDD Lineage:
+• Definition: RDD (Resilient Distributed Dataset) lineage is a record of the transformations applied to the base dataset to derive a particular RDD. It forms a directed acyclic graph (DAG) of dependencies, tracking the lineage of each RDD in the Spark application.
+• Mechanism:
+	• When an RDD is created through transformations, Spark maintains information about its parent RDDs and the transformations applied. This lineage information is crucial for recovering lost data in case of a node failure.
+• Benefit:
+	• The lineage information allows Spark to recompute lost data by tracing back the sequence of transformations that led to the creation of a particular RDD.
+2. Recomputation:
+• Definition: Recomputation is the process of re-executing lost or corrupted transformations using the lineage information stored for RDDs.
+• Mechanism:
+	• When a node fails, Spark uses the lineage information to identify the lost data and recompute it from the original source data or other available RDDs. The recomputation process ensures that the lost data is reconstructed in a fault-tolerant manner.
+• Benefit:
+	• Recomputation provides a cost-effective and reliable approach to recovering lost data without the need for storing intermediate results redundantly.
+Worker Node Failure an
+
+
+
+
+Question 10: 
+Spark Streaming Internals:
+			· Describe the internal architecture of Spark Streaming, including the role of DStreams and micro-batching.
+			· How does Spark Streaming handle event time processing and window operations?
+Ans.
+
+DStreams (Discretized Streams):
+	• Definition: DStreams are the fundamental abstraction in Spark Streaming, representing a continuous stream of data. They are built on top of Spark RDDs (Resilient Distributed Datasets) and provide a high-level API for processing live data streams.
+	• Micro-Batching: DStreams are internally processed using micro-batching, where the input data stream is divided into small, discrete batches. Each batch is treated as an RDD, and Spark processes these batches in small time intervals, typically ranging from a few hundred milliseconds to a few seconds.
+	• Transformation and Output Operations: DStreams support high-level transformations and output operations, making it easy to express complex processing logic on streaming data.
+
+Window Operations:
+	• Definition: Window operations allow Spark Streaming to process data over a sliding or tumbling window of time.
+	• Sliding Windows: In sliding windows, the processing is performed on a continuous, overlapping sequence of time intervals.
+	• Tumbling Windows: In tumbling windows, non-overlapping, fixed-size time intervals are used for processing.
+
+Event Time Processing:
+	• Definition: Event time is the time at which events occurred in the real world. In streaming applications, it's essential to process events based on their event time rather than their arrival time.
+	• Watermarks: Spark Streaming supports watermarks to track the progress of event time. Watermarks define a threshold beyond which old data is considered late and not processed.
+
+
+Question 11: 
+Spark Memory Management:
+			· Discuss the different components of Spark memory management, such as the storage and execution memory.
+			· How does Spark handle memory spills, and what strategies can be employed to optimize memory usage?
+Ans.
+Spark divides its memory into different components to efficiently store and process data. The two main components are Storage Memory and Execution Memory.
+1. Storage Memory:
+• Definition: Storage Memory is used to cache and persist frequently accessed data to reduce recomputation. 
+• It includes the memory allocated for RDD storage and caching.
+• Storage Levels: Data can be stored in memory in various storage levels, such as MEMORY_ONLY, MEMORY_ONLY_SER, MEMORY_ONLY_2, and more. These levels determine the format and compression of the stored data.
+
+2. Execution Memory:
+• Definition: Execution Memory is allocated for storing data structures and intermediate results generated during the execution of tasks.
+•  It includes memory used for shuffle operations, hash tables, and other temporary data structures.
+• Components:
+	• UnifiedMemoryManager: Spark uses a UnifiedMemoryManager to manage both storage and execution memory. It dynamically allocates memory between the two based on the workload.
+
+Handling Memory Spills:
+• Memory Spill: A memory spill occurs when the amount of data exceeds the available memory and spills over to disk storage. Memory spills can negatively impact performance.
+• Handling Spills:
+	• When a memory spill occurs, Spark writes the spilled data to disk, freeing up memory for other tasks.
+	• The spilled data can be recomputed later if needed, but disk I/O can introduce latency.
+
+Question 12:
+How would you handle multiple spark transformations that need to be executed in parallel ?
+ 
+Hint - Parallelism Configuration: Spark provides various configuration options for controlling parallelism:
+	· spark.default.parallelism: Sets the default number of partitions for RDDs created through transformations.
+	· spark.sql.shuffle.partitions: Configures the number of partitions for shuffling operations (e.g., joins, groupBy).
+	· spark.executor.cores: Specifies the number of CPU cores allocated to each executor. Adjust this according to your cluster resources.
+Ans.
+-- Set the default parallelism
+spark-submit --conf spark.default.parallelism=100 ...
+
+-- Set the number of CPU cores per executor
+spark-submit --conf spark.executor.cores=4 ...
+
+Dynamic Allocation:
+	• Enable dynamic allocation to allow Spark to dynamically adjust the number of executors based on the workload. This can help optimize resource usage.
+
+
+Broadcast Variables:
+	• For small reference datasets that are used in join operations, consider using broadcast variables to efficiently distribute the data to all worker nodes, reducing the need for shuffling.
+Dynamic Allocation:
+	• Enable dynamic allocation to allow Spark to dynamically adjust the number of executors based on the workload. This can help optimize resource usage.
+
+Question 13:
+If you have 10 input files but only 2 are critical and need immediate processing , how would you configure and orchestrate spark jobs for the remaining 8 files ?
+ 
+Hint - To configure and orchestrate Spark jobs for processing a mix of critical (2) and non-critical (8) input files, you can use job prioritization and queueing mechanisms.
+
+Ans.
+Use Job Prioritization:
+	• Configuration: Spark supports job prioritization through job and stage priorities.
+	• Implementation:
+		○ Assign higher priorities to the Spark jobs related to the critical files.
+		○ Use the spark.job.priority configuration to set the priority of a job (1 is the highest priority).
+	• 
+-- Set higher priority forcritical files job 
+	• spark-submit --conf spark.job.priority=1 ...
+
+Use Queueing Mechanisms:
+	• Configuration: Most cluster managers (e.g., YARN, Apache Mesos) provide queueing mechanisms to prioritize and manage job execution.
+	• Implementation:
+		○ Submit Spark jobs related to critical files to a high-priority queue.
+		○ Submit Spark jobs related to non-critical files to a regular or low-priority queue.
+	• spark-submit --queue high_priority_queue ... 
+
+
+• Separate Applications: If the processing of critical and non-critical files can be isolated into different Spark applications, submit them separately.
+• Resource Allocation: Configure the resource allocation (e.g., number of executors, memory) differently for critical and non-critical applications.
+• Example:
+
+bashCopy code
+# Submitting the application for critical files
+• spark-submit --class com.example.CriticalFileProcessor ... 
+• # Submitting the application for non-critical files
+• spark-submit --class com.example.NonCriticalFileProcessor ...
+
+
+Question 15:
+Handling Text file with multiple delimiters in python
+ 
+John|Doe|25
+Jane Smith,30
+Bob Johnson|22
+
+Ans.
+# Open the text file for reading
+with open('your_text_file.txt', 'r') as file:
+    for line in file:
+        if '|' in line:
+            data = line.strip().split('|')
+        elif ',' in line:
+            data = line.strip().split(',')
+        else:
+            # Handle the case where neither "|" nor "," is found
+            # You may choose to skip the line, print a warning, or handle it differently
+            continue
+
+        # Process the data as needed
+        if len(data) == 3:
+            first_name, last_name, age = data
+            print(f"First Name: {first_name}, Last Name: {last_name}, Age: {age}")
+        else:
+            print("Invalid data format")
+
+# Output:
+# First Name: John, Last Name: Doe, Age: 25
+# First Name: Jane Smith, Last Name: 30
+# First Name: Bob Johnson, Last Name: 22
+
+['John', 'Doe', '25']
+
+-----------------------------------------------
+R. Advanced Window Functions:
+		· Given a table with sales data including product_id, date, and revenue, write a SQL query to calculate the rolling average revenue for each product over a 7-day window.
+	
+	Ans.
+	SELECT
+	    product_id,
+	    date,
+	    revenue,
+	    AVG(revenue) OVER (PARTITION BY product_id ORDER BY date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS rolling_avg_revenue
+	FROM
+	    sales_data;
+	
+S. Hierarchical Data Structure:
+		· Assume you have an organizational chart stored in a table with columns employee_id and manager_id. Write a SQL query to retrieve the list of employees along with their hierarchical level in the organization.
+	
+	Ans.
+	WITH RECURSIVE EmployeeHierarchy AS (
+	    SELECT employee_id, manager_id, 1 AS hierarchical_level
+	    FROM organizational_chart
+	    WHERE manager_id IS NULL
+	
+	    UNION ALL
+	
+	    SELECT e.employee_id, e.manager_id, eh.hierarchical_level + 1
+	    FROM organizational_chart e
+	    JOIN EmployeeHierarchy eh ON e.manager_id = eh.employee_id
+	)
+	
+	SELECT employee_id, hierarchical_level
+	FROM EmployeeHierarchy;
+	
+T. Handling Time Series Gaps:
+		· In a time series dataset with timestamps and values, write a SQL query to identify and fill in the missing time intervals with the previous available value.
+		
+Ans.
+SELECT
+    timestamp,
+    COALESCE(value, LAG(value) OVER (ORDER BY timestamp)) AS filled_value
+FROM
+    time_series_data;
+
+U. Graph-Based Queries:
+		· Given a table representing relationships between users (user_id, friend_id), write a SQL query to find the shortest path between two users.
+	Ans.
+	WITH RECURSIVE UserPaths AS (
+	    SELECT user_id, friend_id, 1 AS depth
+	    FROM user_relationships
+	
+	    UNION ALL
+	
+	    SELECT ur.user_id, ur.friend_id, up.depth + 1
+	    FROM user_relationships ur
+	    JOIN UserPaths up ON ur.user_id = up.friend_id
+	)
+	
+	SELECT user_id, friend_id, depth
+	FROM UserPaths
+	WHERE user_id = 'source_user' AND friend_id = 'target_user';
+	
+V. Sessionization:
+		· Assume you have a web log dataset with columns user_id, timestamp, and page_visited. Write a SQL query to identify user sessions, where a session is defined as a continuous sequence of page visits with no more than 30 minutes between consecutive visits.
+	Ans.
+	SELECT
+	    user_id,
+	    MIN(timestamp) AS session_start,
+	    MAX(timestamp) AS session_end
+	FROM (
+	    SELECT
+	        user_id,
+	        timestamp,
+	        timestamp - LAG(timestamp) OVER (PARTITION BY user_id ORDER BY timestamp) AS time_diff
+	    FROM web_log
+	) AS TimeDiffTable
+	WHERE COALESCE(time_diff, 0) > INTERVAL '30' MINUTE
+	GROUP BY user_id, COALESCE(SUM(CASE WHEN COALESCE(time_diff, 0) > INTERVAL '30' MINUTE THEN 1 ELSE 0 END) OVER (PARTITION BY user_id ORDER BY timestamp), 0);
+	
+	
+W. Pivoting and Unpivoting:
+		· Given a table with columns for product_id, month, and revenue, write a SQL query to pivot the data to show monthly revenues for each product in separate columns.
+	Ans.
+	
+	SELECT
+	    product_id,
+	    MAX(CASE WHEN month = 'Jan' THEN revenue END) AS Jan,
+	    MAX(CASE WHEN month = 'Feb' THEN revenue END) AS Feb,
+	    -- Add similar expressions for other months
+	FROM
+	    product_revenue
+	GROUP BY product_id;
+	
+	
+X. Handling JSON Data:
+		· If you have a table with a column storing JSON data representing user preferences, write a SQL query to extract and count the most common preference.
+	
+	Ans.
+	SELECT
+	    JSON_EXTRACT_PATH_TEXT(user_preferences, 'preference') AS preference,
+	    COUNT(*) AS preference_count
+	FROM
+	    user_data
+	GROUP BY preference
+	ORDER BY preference_count DESC
+	LIMIT 1;
+	
+	
+Y. Recursive Common Table Expressions (CTE):
+		· Write a SQL query to retrieve all ancestors of a given node in a hierarchical data structure using a recursive common table expression.
+	Ans.
+	WITH RECURSIVE Ancestors AS (
+	    SELECT ancestor_id
+	    FROM hierarchical_data
+	    WHERE descendant_id = 'given_node_id'
+	
+	    UNION ALL
+	
+	    SELECT hd.ancestor_id
+	    FROM hierarchical_data hd
+	    JOIN Ancestors a ON hd.descendant_id = a.ancestor_id
+	)
+	
+	SELECT ancestor_id
+	FROM Ancestors;
+	
+Z. Sampling and Reservoir Sampling:
+		· Write a SQL query to retrieve a random sample of 10% of records from a large table efficiently.
+	SELECT *
+	FROM your_large_table
+	WHERE RAND() <= 0.10;
+	
+AA. Calculating Running Totals:
+		· Given a table with daily transaction amounts, write a SQL query to calculate the running total for each day, resetting the total to zero at the beginning of each month.
+Ans.
+SELECT
+    transaction_date,
+    transaction_amount,
+    SUM(transaction_amount) OVER (PARTITION BY EXTRACT(MONTH FROM transaction_date) ORDER BY transaction_date) AS running_total
+FROM
+    daily_transactions;
+
+Or
+SELECT
+    transaction_date,
+    transaction_amount,
+    CASE
+        WHEN EXTRACT(DAY FROM LAG(transaction_date) OVER (ORDER BY transaction_date)) > EXTRACT(DAY FROM transaction_date)
+        THEN transaction_amount
+        ELSE SUM(transaction_amount) OVER (PARTITION BY EXTRACT(MONTH FROM transaction_date) ORDER BY transaction_date)
+    END AS running_total
+FROM
+    your_table_name
+ORDER BY
+    transaction_date;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+##########################################################################################################################################33
+#########################################################################################################################################3
+
+Select and filter syntax in pyspark----------------->
+result = your_dataframe.select("column1", "column2").filter(your_dataframe["column1"] > 10).groupBy("column2").agg({"column1": "sum"})
+
+result.show()
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+PYTHON ------------------------->
+
+1) Python Program to Find the Second Largest Number in a List:
+Using sort function in python->
+
+Ans.
+#second largest element in a list
+list=[3,7,12,8,9,10,1]
+
+for i in list:
+    list.sort()
+print(list[-2])
+
+# or
+list=[-3,-4,-5,-8,-2,0]
+list.remove(max(list))
+print("list:",max(list))
+
+# or doesnot change the list using sorted
+print(sorted(list, reverse=True)[1])
+print("list:",list)
+
+
+# or
+data = [11, 22, 1, 2, 5, 67, 21, 32 ,11]
+max1 = data[0]  # largest num
+max2 = data[1]  # second largest num
+for i in data:
+    if i > max1:
+        max2 = max1  # Now this number would be second largest
+        max1 = i  # This num is largest number in list now.
+
+    # Check with second largest
+    elif i > max2:
+        max2 = i  # Now this would be second largest.
+print(max2)
+
+
+#######################################################################
+
+BigData---------------->
+
+1.Why Scala?
+ans. hybrid programming lang-->
+OOPS + functional programming(classes/objects and functions)
+data processing is faster and code is faster
+
+
+2.what and why spark?
+ans. for computation and processing(in-memory processing engine)-->any type of storage and resource manager
+10 to 100 times faster than Map-reduce  has CHAINING limitation(5 map-reduce -->10 disk read/write costly operation)
+Offers plug and play feature of spark
+
+3.Optimization techniques in Spark?
+and. 
+
+i)Serialization(By default, Spark uses Java serializer),Kryo serialize
+conf.set(“spark.serializer”, “org.apache.spark.serializer.KryoSerializer”)
+
+ii)Cache and Persist
+Spark provides its own caching mechanisms like persist() and cache().
+cache() and persist() will store the dataset in memory.
+When you have a small dataset which needs be used multiple times in your program, we cache that dataset.
+Cache()   – Always in Memory
+Persist() – Memory and disks
+
+
+iii)Broadcasting-
+small datasets available on nodes locally.
+
+iv). File Format selection-
+Spark supports many formats, such as CSV, JSON, XML, PARQUET, ORC, AVRO, etc.
+Spark jobs can be optimized by choosing the parquet file with snappy compression which gives the high performance and best analysis.
+Parquet file is native to Spark which carries the metadata along with its footer.
+
+
+v)Repartition and coalesce-
+
+
+
+4.spark is lazy and why?
+and. because of tranformation(map,filter,flatmap etc)
+load data only when required into memory
+
+5. While coding in Spark, why the user should avoid shuffle operation?
+ans. Shuffles are heavy operation which consume a lot of memory.
+High shuffling may give rise to an OutOfMemory Error; To avoid such an error, the user can increase the level of parallelism.
+Use reduceByKey instead of groupByKey.
+reduceByKey makes use of map side combine which is faster in comparison to groupByKey as it doesnot perform so.
+
+
+To avoid -->increase the level of parallelism e.g reduceByKey
+
+6.Diff btw groupByKey() and reduceByKey()?
+Ans.)
+Both are transformation operation in Spark of kind wide transformations.
+
+
+
+
+
+##########################################################################
+
+Miscellaneous questions--------------------->
+
+1.How data is processeced when you do select * from table in sql database?
+ans.b-tree-->linear progression
+
+2.why use rdbms?
+and.massive pararllel processing ,complexity
+
+3.what happens when you "delete" data from a table.Is it permanently deleted?
+and.no it can be rolled back unlike "truncate" command.But if commit is run thn cant get back.(rollback the database to any previous point you still have a snapshot and binlog for)
+After commit only get data from any old backup of data.
+
+4.how spark reads decimal values?
+ans. using java.math.bigdecimal()
+
+The default precision and scale is (10, 0) in spark.
+
+5.convert 3 level nested json to a csv using spark program?
+and. using explode function we can achive it.
+explode--->collect-->coalesce--->join it
+
+
+
+Morgan stanley by PWC------------->
+
+2 4 5 6 10 12 8 5
+
+for i in range len(n):
+	if a[i]>a[i]+1:
+	
+	
+Q1.Find max in a list
+Q2.why stages,tasks needed?
+Q3.Wide vs narrow transformation how does it process the data
+Q4.databases in aws
+Q5.
+		
+		
+		
+		////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	19 april 2023============================>
+	Globlant
+	
+	Product :
+	PRODUCT_ID PRODUCT_NAME
+	-----------------------
+	100        Nokia
+	200        IPhone
+	300        Samsung
+	400           LG
+	
+	Sales :
+	SALE_ID PRODUCT_ID YEAR QUANTITY PRICE
+	--------------------------------------
+	1       100        2010   25     5000
+	2       100        2011   16     5000
+	3       100        2012   8      5000
+	4       200        2010   10     9000
+	5       200        2011   15     9000
+	6       200        2012   20     9000
+	7       300        2010   20     7000
+	8       300
+	
+	
+	
+	1.Write a query to find the total sales of each product.?
+	2.Write a query to select the top product sold in each year?
+	
+	
+	select p.product_id,sum(price) as total_sales
+	from product p join sales s
+	on s.product_id=p.product_id
+	group by p.product_id
+	
+	2.
+	select *
+	from a where rank=1
+	(select 
+	rank() over( partition_by (PRODUCT_ID) order by QUANTITY desc) as rank
+	from product p join sales s on s.product_id=p.product_id )a
+	
+	
+	
+	2------->
+	"Consider a file with column named Sports, which has elements as below, convert each record using Spark Dataframe .
+	
+	Input :
+	
+	Name|Age|Sports
+	Mahesh|25|cricket,football,Tennis
+	Raj|34|Golf
+	Yogesh|21|basketball
+	
+	Output :
+	
+	Name    Age  Sports
+	Mahesh  25   cricket
+	Mahesh  25   football
+	Mahesh  25   Tennis
+	Raj     34   Golf
+	Yogesh  21   basketball"
+	
+	
+	df=spark.read.format("csv").delimiter("|")
+	
+	1.And write data in pyspark?
+	2.how do you define schema.
+	3.what does inferschema do in spark,read
+	
+	
+	What issues you have faced in your projects
+	
+	"abccba"
+	
+	
+	
+	Q1.how hive runs in the behind? What happens when you do select * from table command
+	2.how Spark-predicate top down approach
+	3.braodcast variable
+	4.palindrome
+	5.what happens when namenode collapses
+	6.redshift compute nodes architecture level
+	7.why datawarehouse instaed of database
+	8.what happens when driver fails?
+	Does spark driver go out of memory?
+	What is out of memory
+	9.Memory overhead in spark?
+	10.diff btw coalesce and repartition and which one is preferred and why?
+	11.can glue run spark jobs?
+	12.what is glue
+	13.what is redshift?
+	14.diff btw rdd,dataframe,dataset
+	15.how hadoop knows which datanode to go to get the required data
+	16.
+	
+	/////////////////////////////////////////////////   HCL  /////////////////////////////////////////////////////////////////////////
+	
+	
+	1.Cascade in hive
+	2.delete a column completely in hive after some years
+	3.you have a file but you want to ignore the header in hive ?
+	4.Dynamilcally readingthe header
+	5.
+	
+	
+	Q)what will be the result of left outer join in hive
+	
+	A
+	1
+	1
+	0
+	Null
+	
+	
+	B
+	1
+	0
+	Null
+	Null
+	
+	Ans.)
+	A
+	1
+	1
+	0
+	Null
+	
+	
+	B
+	1
+	0
+	Null
+	Null
+	
+	
+Inner join:
+
+1	1
+0	0
+
+
+Left join:
+1	1
+1	null
+0	0
+null	null
+
+Right Join:
+1	1
+0	0
+1	null
+null	null
+
+Full outer join:
+	
+1	1
+1	null
+0	0
+null	null
+null	null
+
+	
+	------------
+	
+	10 nodes
+	16 cores per nodes
+	ram memory-64gb per nodes
+	
+	assign 1 executor per node can you tell me how many  no of executor required
+	
+	no of cores memory
+	
+	
+	//////////////////////////
+	
+	1
+	0
+	Null
+	Space
+	
+	1.select * what will be the output
+	2.for partiion which all columns will be the result
+	
+	
+	//////////////  GSPANN technologies -Priya Mishra - 1 May 2023 /////////////////////////////////////////////////////
+	
+	df
+	loan_type	= "car_load"
+	
+	
+	Q1.	Filter loan_type="Car_loan" using Pyspark and SQL ?
+	
+	df_filter=df.filter(["loan_type"]=="car_loan")
+	
+	
+	df_join=df1.join(df2,col='id')
+	
+	
+
+	
+	TransactionTable –
+	 
+	
+	TransactionID, CustomerID, TransactionAmount
+	
+	select CustomerID,sum(TransactionAmount)
+	from TransactionTable
+	group by CustomerID
+	
+	
+
+	df=spark.sql("select CustomerID,sum(TransactionAmount)
+	from TransactionTable
+	group by CustomerID)
+	
+	
+	df['CustomerID','TransactionAmount'].sum(df['TransactionAmount']).groupBy(df['CustomerID'])
+	
+	
+	Q2.	Get the most occuring variable in the below list ?
+	
+	list=[1,5,4,2,2,3,4,6,2,5,2,7,2]
+	
+	count=0
+	for i in range(len(list)):
+				for j in range(i+1,len(list)):
+					if(i==j):
+					count=count+1
+					
+				
+	print("Most occuring variable",max(count))
+						
+					
+	Q3.	Reverse the below string as follows?
+	
+	
+	str="Hello World”
+	output : “olleH dlroW”
+	
+	
+	rev_str=str[: : -1]
+	
+	Q4.	Tuple vs list difference?
+	[]
+	()
+	
+
+//////////////////////////////// AFFINE ANALYTICS -2nd round -2 MAY 2023 ////////////////////////////////////////////////////////////
+
+
+Q.Find the unit_price of the maximum product sole i.e 2000 b
+unit_price  product
+
+100			a
+2000		b
+100			a
+100			b
+
+
+select product,max(unit_price)
+from table
+group_by product
+
+
+select product,unit_price,rank() over(partition product order by unit_price desc) as rank
+from table where rank=1 
+
+
+
+Q. Arannge the list in ascending order?
+list=[10,5,2,3,6,9,14]
+
+
+for i in range(len(list)):
+	for j in range(i,len(list)):
+		if(list[i]<list[j]):
+			temp=list[j]
+			list[j]=list[i]
+			list[i]=temp
+
+Q.Diff between groupBy and partitionBy in sql
+Q.what is measure and an attribute in dimension table
+Q.OOPS concept
+
+
+##############################  ZENSAR Technologies ############################
+
+1.what are decorators - why do we need decorators
+2.generators
+3.how exception are handled ,error handling done in python?
+
+tuple=(1,5,'a',7)
+try:
+foriintuple:
+print("tuple",tuple[i])
+
+except:
+tuple.pop(1)
+print("Errorwhilemodifiyingthetuple")
+
+4.Write python code?
+list=['python','aws','java']
+
+Output needed -> python@aws@java
+
+Ans.)
+Print('@'.join(list)
+
+
+for i in list:
+	list[i].append('@')
+	
+return list
+
+5.Pyspark how different from Python
+6.Multiple inheritance allowed in python?
+7.What is slicing in python?
+
+ ///////////////////////////// Concert AI ///////////////////////////////////////////////////////////
+
+Assesment---------->
+
+	1. Write a SQL query that finds out employees who earn more than their managers using the table employee below.
+	
+	SELECT e.Employee_Name FROM employee e Join employee m ON e.Manager_ID = m.Id WHERE e.Employee_Salary > m.Employee_Salary
+	
+	2. Write an SQL query for a report that provides the customers who bought all the products
+Ans. 
+SELECT customer_name from Customer c join Orders o on c.customer_id=o.customer_id join Product p on p.Product_Id=o.Product_Id
+
+
+SELECT customer_id FROM customer GROUP BY customer_id HAVING COUNT( DISTINCT product_key) = (SELECT COUNT(*) FROM product)
+
+
+
+	3. Write an SQL query that reports the best seller by total sales price, If there is a tie, report them all
+Select a.seller_id from (select seller_id,  rank() over(order by sum(price) desc) as rank from sales group by seller_id) a where a.rank=1
+
+	4. Write an SQL query to find out quarter wise sales
+	 
+	5. The maximum weight the elevator can hold is 250 KG.
+	Write an SQL query to find the number of people who will fit in the elevator without exceeding the weight limit
+	Note: People enter into the elevator only in the order of the elevator_entry_id provided to them. 
+	
+	
+	6. What does this code print?
+	
+	numbers = [1, 2, 3]
+	result = map(lambda x: (x, x**2, x**3), numbers)
+	print(list(result))
+	
+	
+	list1 = [1 , 2 , 3 , 2]
+	list2 = [2 , 3 , 4 , 5]
+	
+	7. Write a python function:
+	1. Accepts 2 lists as input (sample is mentioned above)
+	2. Print the numbers that are part of both lists and they should be duplicate in atleast one list
+	
+	11
+	list1 = [1 , 2 , 3 , 2]
+	list2 = [2 , 3 , 4 , 5]
+	
+	8. Write a python function:
+	1. Accepts 2 lists as input (sample is mentioned above)
+	2. Print the numbers that are mutually exclusive of both lists
+	
+	
+	
+	
+	nums = [1, -2, 3, -4, 5]
+	
+	9. Write a python function:
+	1. Accepts 1 list of intergers as input (sample is mentioned above)
+	2. prints the sum of all positive numbers in the list.
+	
+	10. Python code to-->
+	Write a python function:
+	1. Accepts 1 string as parameter
+	2. return 1 if it is a palindrome, else return 0
+	
+	Q.Multithreading/parrel execution
+	Q.Error or exception handling
+	
+	
+	
+	
+	
+	
+	 ################### ALTIMETRIX###########################################
+	
+	
+	1. Fetch the employees who are having same salary from each department. 
+	
+	Ans.)
+	SELECT e1.*
+	FROM employees e1
+	INNER JOIN employees e2 ON e1.department = e2.department AND e1.salary = e2.salary
+	WHERE e1.employee_id <> e2.employee_id
+	ORDER BY e1.department, e1.salary;
+	
+	Or
+	
+	SELECT *
+	FROM employees
+	WHERE (department, salary) IN (
+	    SELECT department, salary
+	    FROM employees
+	    GROUP BY department, salary
+	    HAVING COUNT(*) > 1
+	)
+	ORDER BY department, salary;
+	
+	
+	2.
+	Year, revenue,diff
+	2022,5,5-4
+	2021,4,4-7
+	2020,7,7
+	Write the code to get the difference current year - minus previous year 
+	
+	Ans.)
+	SELECT
+	  Year,
+	  Revenue,
+	  Revenue - LAG(Revenue) OVER (ORDER BY Year) AS diff
+	FROM your_table
+	ORDER BY Year;
+	
+	Syntax of LAG---->
+	LAG(name_of_Column [,offset_number_rows_to_skip[,default_value]]) OVER(ORDER BY
+	
+	
+	3.
+	Customer_hist table with 	All 5 year's data:
+	Cid,created_dt, updated-dt
+	
+	Customer_delta table with 	Only updated and newly added records: 
+	Cid,created_dt, updated-dt
+	
+	Fetch yesterday's  updated and newly added records using history and incremental table in SQL
+	
+	Ans.)
+	SELECT Cid, created_dt, updated_dt
+	FROM (
+	    SELECT Cid, created_dt, updated_dt
+	    FROM Customer_hist
+	    WHERE DATE(updated_dt) = DATE(DATE_SUB(NOW(), INTERVAL 1 DAY))
+	    
+	    UNION ALL
+	    
+	    SELECT Cid, created_dt, updated_dt
+	    FROM Customer_delta
+	    WHERE DATE(updated_dt) = DATE(DATE_SUB(NOW(), INTERVAL 1 DAY))
+	) AS YesterdayUpdates
+	ORDER BY updated_dt;
+	
+	
+	4.
+	Dept table 
+	Dno, loc
+	10,hyd
+	Null,hyd
+	********
+	Emp table 
+	Eno,dno
+	101,10
+	102,10
+	103,Null
+	
+	
+	
+	Select * from dept
+	Left join emp
+	On d.dno=e.dno
+	Write the output of the above query 
+	
+	Dno, loc	Eno
+	10,hyd		101
+	Null,hyd 	102
+	
+	
+	5. Write the below code in pyspark 
+	 Read data from 
+	employee table, department table
+	Join them by dept no.
+	Write them to new table which is partitioned by dept no and mode is overwrite .
+	
+	df1=spark.read.format("table")
+	df_join=df1.join(df2,dept_no.)
+	
+	new_table=df_join.write("location).option("mode=overwrite").partitionBy("dept_no")
+	
+	
+	6. Check all the dept numbers in department table present in emp table or not. Write the optimized way.
+	
+	seelct dept_no 
+	from department dept_no exists in (select dept_no from empoyee )
+	
+	
+	
+	
+	Q.How will you optimize joins if there are million of frecords in two big tables in spark
+	
+	Q.what will you do if one job is taking too much time in a  single partition?
+	
+	Q.How will you check on SparkUI interface about failing jobs?
+	
+	Q.what all slicing can be applied?list/tuple/dictionary/set etc
+	
+	###################LENDING KART ASSESSMENT##################################### 
+	
+Q1.
+
+
+
+
+def Solve (N, A):
+    # Write your code here
+    mini=min(A, key=abs)
+    return mini
+        
+    
+N = input()
+A = list(map(int, input().split()))
+out_ = Solve(N, A)
+print (out_)
+
+
+Q2. SQL:
+
+
+
+			
+	Working sql code----->
+	
+	select sum(salary),min(salary),max(salary)
+	from EmployeeDepartment
+	
+	
+	###################################### ALTIMETRIX  9 May 2023 ###########################################
+	Q.How do you write a pyspark code to fetch incremental data in the final destination table
+	
+	Build a pipeline end to end to load into destination table to handle column incremental and decremental to load into same destination table in pyspark code.
+	If column is new then insert into destination table and for older rows insert these column values as Null.
+	How will you Schedule this your job automatically whenever employee.csv file comes? (Apache airflow)
+	
+	employee.csv
+	
+	employee_id -primary key
+	
+	Day 1------->
+	employee.csv
+	10 columns,15 rows
+	
+	
+	Day 18------>
+	employee.csv
+	15 columns,20 rows
+	
+	Day 200--->
+	employee.csv
+	8 columns,50 rows
+	
+	Ans.---------------------------------->
+	To build an end-to-end pipeline that handles column incremental and decremental changes while loading data into the destination table using PySpark, you can follow these steps:
+	
+	1. Set up a directory where the employee.csv files will be placed periodically.
+	2. Create a PySpark script to handle the incremental and decremental changes and load the data into the destination table.
+	3. Schedule the PySpark script to run whenever a new employee.csv file is placed in the directory.
+	
+	Here's an example of how you can implement this pipeline:
+	
+	1. Set up the directory structure:
+	   - Create a directory to store the employee.csv files (e.g., `/path/to/employee_csv`).
+	   - Set up a directory where the processed files will be moved (e.g., `/path/to/processed_files`).
+	
+	2. PySpark script (`employee_load.py`):
+	
+	Code::::::::::>
+	
+	from pyspark.sql import SparkSession
+	from pyspark.sql.functions import lit
+	
+	# Step 1: Set up Spark session
+	spark = SparkSession.builder.appName("Employee Load").getOrCreate()
+	
+	# Step 2: Read the employee.csv file
+	employee_csv_df = spark.read.csv("/path/to/employee_csv/employee.csv", header=True)
+	
+	# Step 3: Load the existing data from the destination table
+	existing_df = spark.read.format("jdbc").options(
+	    url="jdbc:postgresql://localhost:5432/database",
+	    dbtable="destination_table",
+	    user="username",
+	    password="password"
+	).load()
+	
+	# Step 4: Compare the schema of the new DataFrame with the existing DataFrame
+	existing_columns = existing_df.columns
+	new_columns = [col_name for col_name in employee_csv_df.columns if col_name not in existing_columns]
+	
+	# Step 5: Add new columns with NULL values to the existing DataFrame
+	for new_column in new_columns:
+	    existing_df = existing_df.withColumn(new_column, lit(None))
+	
+	# Step 6: Append the new data to the existing data in the destination table
+	union_df = existing_df.unionAll(employee_csv_df)
+	union_df.write.format("jdbc").options(
+	    url="jdbc:postgresql://localhost:5432/database",
+	    dbtable="destination_table",
+	    user="username",
+	    password="password",
+	    mode="append"
+	).save()
+	
+	# Step 7: Move the processed employee.csv file to the processed files directory
+	employee_csv_df.write.mode("append").csv("/path/to/processed_files", header=True)
+	```
+	
+	3. Schedule the job using Apache Airflow:
+	   - Install and configure Apache Airflow.
+	   - Create a DAG (Directed Acyclic Graph) to schedule the PySpark script to run periodically.
+	   - Set up a sensor to detect new employee.csv files in the directory.
+	   - Add a task to execute the PySpark script whenever a new file is detected.
+	   - Schedule the DAG to run at the desired frequency (e.g., every day, every hour, etc.).
+	
+	With this pipeline in place, whenever a new employee.csv file is placed in the input directory, Apache Airflow will trigger the DAG execution. The PySpark script will handle the incremental and decremental changes by adding new columns with NULL values to the existing DataFrame and appending the new data to the destination table. The processed file will be moved to the processed files directory for future reference.
+	
+
+
+	Q.How to read multiple files in dataframes when files in different location? 
+	
+	spark = SparkSession.builder.getOrCreate()
+	
+	# Define the file paths for the different files
+	file_paths = [
+	    "path/to/file1.csv",
+	    "path/to/file2.csv",
+	    "path/to/file3.csv",
+	    # Add more file paths as needed
+	]
+	data_df = spark.read.csv(file_paths, header=True) 
+	
+	#Or
+	
+	df=spark.read.format("csv").options("path1","path2","path3")
+	
+	
+	############################## CGI  $$$$$$$$$$$$$$$$$$$$ ###########################################################################
+	
+	Q.what is difference between Union and join class?
+	JOIN	UNION
+	JOIN combines data from many tables based on a matched condition between them	SQL combines the result set of two or more SELECT statements.
+	It combines data into new columns.	It combines data into new rows
+	The number of columns selected from each table may not be the same.	The number of columns selected from each table should be the same.
+	Datatypes of corresponding columns selected from each table can be different.	The data types of corresponding columns selected from each table should be the same.
+	It may not return distinct columns.	It returns distinct rows.
+	
+	
+	
+	Q.Main criteria for union class Union condition?
+	Ans.
+	The number of columns selected from each table should be the same.
+
+	
+	Q.what will be left join,right join and inner join?
+	table 1               tabl2           
+	 
+	col1                 col2
+	 
+	1                    1
+	2                    1
+	3                    2
+	5                    4
+	
+	
+	select * from table t1 join table t2
+	on t1.col=t2.col
+	
+	col1
+	1
+	2
+	
+	col2
+	1
+	1
+	2
+	
+	select * from table t1 left join table t2
+	on t1.col=t2.col
+	
+	col1
+	1
+	2
+	3
+	5
+	
+	col2:
+	1
+	1
+	2
+	null
+	
+	
+	
+	right join:
+	
+	select * from table t1 right join table t2
+	on t1.col=t2.col
+	
+	col1:
+	1
+	2
+	null
+	null
+	
+	col2:
+	1
+	1
+	2
+	4
+	
+	
+Q. find max in a list
+	
+	list=[1,5,3,6,8,10]
+	max=list[0]
+	list1=[]
+	for i in list:
+		if(i>max):
+			max=i
+		
+	
+	###########################  QUINCE ################################################################
+			
+			
+		1. A table Employee(emp_name, gender, salary) is given.
+		Give the output as employees listed one after the other in alternate genders in the order of decreasing salary.
+		Eg.)
+		Emp Name	Gender	Salary
+		John	M	$100,000
+		Jack	M	$200,000
+		Carla	F	$150,000
+		Carin	F	$250,000
+		Joe	M	$160,000
+		Jim	M	$220,000
+	    Output
+	Emp Name	Gender	Salary
+	Carin	F	$250,000
+	Jim	M	$220,000
+	Carla	F	$150,000
+	Jack	M	$200,000
+	Joe	M	$160,000
+	John	M	$100,000
+	 
+	 
+	Ans.
+	
+	SELECT * FROM (
+	    SELECT * FROM employees
+	    ORDER BY Salary DESC
+	) AS sorted_employees
+	ORDER BY CASE WHEN Gender = 'F' THEN 0 ELSE 1 END, Salary DESC;
+	
+	
+	#OR
+	
+	SELECT EmpName, Gender, Salary
+	FROM (
+	    SELECT *,
+	        ROW_NUMBER() OVER (PARTITION BY Gender ORDER BY Salary DESC) AS rn
+	    FROM employees
+	) AS ranked_employees
+	ORDER BY CASE WHEN Gender = 'F' THEN rn ELSE rn + 1 END, Salary DESC;
+	
+	
+	------------------------------------------------------- 
+	 
+			A 30, B 32, C 32, D 34
+	 
+	 
+	Q2.Give the running total of profit per day for a company for each department.
+		(date, department,  profit)
+	 
+	 
+	 
+	5/1, 1, 30 -> 30
+	5/1, 2, 50 -> 50
+	5/2, 1, 60 -> 90
+	5/3, 1, 70 -> 160
+	 
+	Ans.
+	
+	select date,department,profit,
+	sum(profit) over(partition by department order by date) as running_total
+	from company
+	order by department,date
+	
+		
+			
+	Q3.what is the alternate of rank function in sql?
+	The alternative to the RANK() function in SQL is the ROW_NUMBER()
+	
+	Row_number                     	Rank	Dense_rank
+	1	1	1
+	2	1	1
+	3	2	3
+	4	3	4
+	5	4	4
+	6	4	6
+	7	5	7
+			
+	
+		
+##########################  CARDINAL HEALTH  #############################################################################################################
+			
+	Q.print elements which are positive and negative in a new column
+	
+	value
+	
+	2
+	
+	-2
+	
+	4
+	
+	-4
+	
+	-3
+	
+	0
+	
+	2
+	
+	 
+	Ans.)
+	select  case when value>0 then sum(value)  endas positive_sum,
+	case when value<0 then sum(value) end as negative_sum
+	from table
+	
+	
+	Q2.Find the elemnt which has least duplicate in a table with these elements in sql?
+	
+	Element
+	
+	8
+	
+	8
+	
+	8
+	
+	11
+	
+	12
+	
+	1
+	
+	2
+	
+	7
+	
+	9
+	
+	12
+	
+	 Example 11 1
+	8	3
+	11	1
+	12	2
+	1	1
+	
+	Ans.
+	SELECT Element
+	FROM YourTable
+	GROUP BY Element
+	HAVING COUNT(*) = (
+	    SELECT MIN(duplicates)
+	    FROM (
+	        SELECT COUNT(*) AS duplicates
+	        FROM YourTable
+	        GROUP BY Element
+	    ) AS subquery
+	);
+	
+	
+	------------------------------------------------------------------------------------------
+	selext max(a)
+	from table where elemnt in (
+	select element,count(*) as count
+	from table
+	group by element
+	having count(*)=1)a
+	
+	
+	Q3.what is the diff btw partitioning and bucket and in what case we should go for which one?
+	Ans.)
+		Partitioning	Bucketing
+	Definition	Divides data into logical partitions	Divides data into fixed number of buckets
+	Level	File or directory level	Data block level
+	Criteria	Based on specific column value or expression	Based on hash function applied to column(s)
+	Data Skew	May have data skew within partitions	Helps mitigate data skew
+	Query	Efficient for filtering and aggregation	Improves join performance
+	Use Case	Large datasets with specific partition criteria	Even distribution of data across buckets
+	Examples	Partitioning by date, country, or category	Bucketing by user ID or product ID
+	Cardinality	Low (Less distinct columns/data)	High(More distinct columns/data)
+	
+	
+	
+	Cardinality---------->
+	Number of distinct values in the partitioning or bucketing column
+	1.  Higher cardinality --------> More distinct values in the column (BUCKETING)
+	CREATE TABLE sales_bucketed (
+	    sale_id INT,
+	    sale_date STRING,
+	    sale_amount DOUBLE
+	)
+	CLUSTERED BY (sale_id) INTO 10 BUCKETS
+	STORED AS ORC;
+	
+	2. Low Cardinality ----------> less distinct columns  (PARTITIONING)
+	CREATE TABLE sales (
+	    sale_id INT,
+	    sale_date STRING,
+	    sale_amount DOUBLE
+	)
+	PARTITIONED BY (year INT, month INT)
+	STORED AS PARQUET;
+	
+
+• Partitioning works best when the cardinality of the partitioning field is less cardinality
+• Bucketing works well when the field has high cardinality and data is evenly distributed among buckets.
+	
+	
+	Q4.How to cache a table in hive which is frequently used?
+	Ans.) Command:
+		CACHE TABLE table_name;
+		
+		To remove a table from Cache:
+		UNCACHE TABLE table_name;
+		
+		
+	Q5.diff btw fact and dimension table
+	Q6.diff btw repartition and coalesce
+	Q7.diff btw surrogate and primary keys.what is the the benefit of surrogate keys
+	Ans.)
+	PRIMARY:
+	The primary key is a unique key in your table
+	
+	//SURROGATE:
+	A surrogate key is an artificially generated key.
+	Syntax:
+	CREATE TABLE Example
+	(
+	    EmployeeId INT IDENTITY(1,1) NOT NULL  -- A surrogate key that increments automatically
+	)
+	
+	Usecase:
+	Person table, where its possible for two people born on the same date to have the same name, or records in a log, since it's possible for two events to happen such they carry the same timestamp
+	
+	Advanatges:
+	A Surrogate Key does not change so the application cannot lose their reference row in the database.
+	
+	
+	Benefit:
+	The surrogate key in SQL acts as the primary key when the primary key is not applicable
+	Ideally, every table row should have both the primary and surrogate keys: the primary key identifies a row in the database, and the surrogate key identifies a separate entity.
+	
+	
+	
+	
+	
+	Q8.stored procedure how to create a table
+	Q9.diff btw analytics(lead and lag) and aggregate (sum,min,max)function in SQL
+	Q10.diff between fact and dimension tables?
+	Parameters	Fact Table	Dimension Table
+	Definition-	Measurements, metrics or facts about a business process.	Provides descriptive context for the facts
+	Granularity-		
+	Primary Key-	Contains detailed, atomic-level data		Contains aggregated or summarized data
+			
+	Measures-	Typically includes foreign keys		Has a primary key(They are joined to fact table via a foreign key)
+			
+		Normalized( No redundancy-data integrity-stores in separate small tables)	De-normalized (Table are bigger because redundant data to avoid joins for READS)
+	Example-	Contains numeric or additive measures		Does not contain measures
+			
+			
+		Sales, Revenue, Quantity Sold		Product, Customer, Date
+	Characteristic	Located at the center of a star or snowflake schema and surrounded by dimensions.	Connected to the fact table and located at the edges of the star or snowflake schema
+	Design	Defined by their grain or its most atomic level.	Should be wordy, descriptive, complete, and quality assured.
+	Task	Fact table is a measurable event for which dimension table data is collected and is used for analysis and reporting.	Collection of reference information about a business.
+	Type of Data	Facts tables could contain information like sales against a set of dimensions like Product and Date.	Evert dimension table contains attributes which describe the details of the dimension. E.g., Product dimensions can contain Product ID, Product Category, etc.
+	Key	Primary Key in fact table is mapped as foreign keys to Dimensions.	Dimension table has a primary key columns that uniquely identifies each dimension.
+	Storage	Helps to store report labels and filter domain values in dimension tables.	Load detailed atomic data into dimensional structures.
+	Hierarchy	Does not contain Hierarchy	Contains Hierarchies. For example Location could contain, country, pin code, state, city, etc.
+	
+	
+	
+	
+	Q.what is measure and an attribute in dimension table?
+	Ans.)
+	A measure and an attribute are two different types of data.
+	
+	An Attribute in a dimension table provides descriptive details or characteristics of a dimension. 
+	It represents the different qualities or properties associated with the dimension.
+	 For example, in a "Product" dimension, attributes can include product name, brand, category, color, size, and price.
+	
+	A Measure in a dimension table represents a numeric or quantitative value associated with the dimension.
+	 It represents a specific metric or calculation that can be used for analysis or aggregation. 
+	For example, in a "Sales" dimension, measures can include sales revenue, quantity sold, average price, and profit margin.
+	
+	
+	
+	Q11.what is data Modelling?
+	Ans.)
+	It is a conceptual representation of data and its relationships within a system.
+	Defining the organization, constraints, and rules for data storage and manipulation.
+	
+	Data modeling is the process of creating a conceptual representation of data and its relationships. It involves designing the structure, organization, and relationships of data to support the requirements of an application or system. Data modeling is used to ensure that data is organized, consistent, and meaningful for both humans and computer systems.
+	
+	Data modeling is important for several reasons:
+	
+	1. Structure and Organization: Data modeling helps to structure and organize data in a logical manner, making it easier to understand and manage. It defines the entities (objects or concepts) within the data and their relationships, providing a clear framework for data storage and retrieval.
+	
+	2. Data Integrity:(Accuracy and correctness) By defining the relationships between data entities, data modeling helps maintain data integrity. It ensures that data is stored accurately and consistently, avoiding duplication or inconsistencies that can lead to data quality issues.
+	
+	3. Application Development: Data modeling serves as a blueprint for application development. It provides developers with a clear understanding of the data requirements, allowing them to design and build efficient and effective systems that meet business needs.
+	
+	4. Communication and Collaboration: Data models act as a common language between business stakeholders, analysts, developers, and database administrators. They facilitate communication and collaboration by providing a visual representation of data and its relationships, enabling better understanding and alignment among team members.
+	
+	5. Data Governance and Documentation: Data models serve as documentation of the data structure and provide a foundation for data governance. They support data management practices, such as data dictionary creation, data lineage tracking, and data security controls.
+	
+	Overall, data modeling is essential for ensuring data quality, supporting application development, enabling effective communication, and establishing a solid foundation for data management and governance.
+	
+	Q12.what are the different types of keys in sql?
+	1. Primary Key: A primary key is a unique identifier for each row in a table. It ensures that each record in the table is uniquely identified. Primary keys must have unique values and cannot contain null or duplicate values.
+	
+	2. Foreign Key: A foreign key is a field or set of fields in one table that refers to the primary key of another table. It establishes a relationship between two tables, known as a parent-child relationship. The foreign key in the child table references the primary key in the parent table, ensuring referential integrity.
+	
+	3. Unique Key: A unique key is similar to a primary key in that it enforces uniqueness. However, unlike a primary key, a table can have multiple unique keys. Each unique key can contain null values, but no two records can have the same values for the unique key.
+	
+	4. Candidate Key: A candidate key is a column or set of columns in a table that can uniquely identify a record. It is a potential candidate for being a primary key. A table can have multiple candidate keys, and the primary key is chosen from among them.
+	
+	5. Composite Key: A composite key is a key that consists of two or more columns in a table. Together, these columns uniquely identify a record in the table. Unlike a primary key, which is typically a single column, a composite key provides a combination of columns to create a unique identifier.
+	
+	6. Surrogate Key: A surrogate key is an artificially created key that is used as a substitute for a natural key. It is typically an auto-incremented or generated value that ensures uniqueness. Surrogate keys are often used when there is no suitable natural key or when the natural key is too long or complex.
+	
+	7. Alternate Key: An alternate key is a candidate key that is not chosen as the primary key. It represents an alternative option for uniquely identifying records in a table.
+	
+	
+	
+	
+	Q13.Diff btw surrogate and a natural key?
+	Ans.)
+	A natural key is a key that is derived from the data itself, such as a customer ID, a product code, or a date. 
+	A surrogate key is a key that is generated artificially, such as a sequential number, a GUID(Globally unique identifier), or a hash and represents a unique ROW in a database.
+	
+	
+	###########################  IMPACT ANALYTICS ##############################################
+	
+	Q. Get all musican which are atleast fkute and other one of the same musician id
+	musician_id		first_name		last_name		instrument		age
+		m1											flute
+		m1											guitar	
+		m2											guitar		
+		m3											guitar						
+		m3											keyboard
+		
+		
+		o/p:
+	first		last_name	instrument1		instrument2
+							flute			
+							
+	
+	self join:
+	Ans.)
+	select first_name,last_name,m1.instrument,m2.instrument
+	from musician m1 join musican m2
+	on m1.musician_id=m2.musician_id
+	where m1.instrument=='Flute' and m1.instrument<>m2.instrument
+	
+	------------------------
+	Q.Get the maximum out of 1st elemnt of x,y,z e.g 1
+	
+	x = [-1,2,3]
+	y = [1,-5,4]
+	z = [0,1,5]
+	
+	Ans.)
+	new_xyz=zip(x,y,z)
+	for i in new_xyz:
+		print(max(i))
+	
+	
+		
+	--------------------------
+	
+	Q.find out city which is not related to any other city example SAO PAULO?
+	
+	list=[["Lima","Sao Paulo"],["New York","Lima"],["London","New York"]]
+	
+	Ans.)
+	
+	all_cities=set()
+	related_cities=set()
+	for i in list:
+	all_cities.add(i[0])
+	related_cities.add(i[1])
+	
+	print("Allcities",all_cities,related_cities)
+	unrelated_cities=all_cities-related_cities
+	print("unrealtedcities:",unrelated_cities)
+	
+		
+	Q.diff btw groupby and reduce by keys in sql?
+	Q. Out of memory issues in spark?
+	R. Q.Diff btw SCD1 and SCD2
+Ans.)
+SCD1 (Slowly Changing Dimension Type 1) and SCD2 (Slowly Changing Dimension Type 2) are two common techniques used in data warehousing to handle changes in dimensional data over time. Here's a brief explanation of the differences between SCD1 and SCD2:
+
+SCD1:
+- SCD1 is the simplest and most basic technique for managing changing dimensions.
+- In SCD1, when a change occurs in a dimension attribute, the existing record is updated directly with the new value, overwriting the old value.
+- The historical information is not preserved, as only the most recent value is maintained.
+- SCD1 is suitable when historical data is not required, and only the current version of the dimension is needed.
+- It provides a straightforward and efficient approach but does not retain historical information.
+
+SCD2:
+- SCD2 is a more sophisticated technique that preserves historical changes in dimensional data.
+- In SCD2, when a change occurs in a dimension attribute, a new record is inserted into the dimension table to represent the new version.
+- The new record contains a surrogate key, which uniquely identifies the version of the dimension.
+- SCD2 maintains a complete history of changes, allowing analysis of data at different points in time.
+- It provides a full audit trail and allows for tracking and reporting on historical changes.
+- SCD2 requires additional storage space to store the historical data and more complex querying logic to handle the versioning.
+
+In summary, SCD1 updates the existing record with the new value, while SCD2 inserts a new record to represent the changed version, preserving historical information. SCD1 is simpler and more efficient but does not retain history, while SCD2 provides a complete history but requires more storage and complexity. The choice between SCD1 and SCD2 depends on the specific requirements of the data warehousing scenario and the need for historical analysis.
+
+SCD 1: Complete overwrite 
+SCD 2: Preserve all history. Add row 
+SCD 3: Preserve some history. Add additional column for old/new.
+
+
+
+Q.Different keys in SQL?
+Ans.)
+	############################# PERSISTENT SYSTEMS###########################################################################################################
+	
+	Q.To print the set of numbers which return the resulta s target in python?
+	
+	list=[1,3,4,6,8]
+	target = 5
+	
+	
+	o/p=[0,2]
+	
+	for i in range(len(list)):
+	
+		for j in range(i+1,len(list)):
+			if (list[i]+list[j]==target):
+					print("i and j:"i,j)
+	
+	
+			else:
+				print("No elemnts found)
+				break
+				
+	
+	Q.Palindrome in python?
+	string="sos"
+	
+	rev_string=string[::-1]
+	if(rev_string==string):
+		print("Its reverered ")
+	else:
+		print(not palindrome")
+		
+	Q.List employee who earns more than his manager ?
+	 
+	empid, ename, salary, managerid
+	101, Joe, 70000, 103
+	102, Henry, 80000, 104
+	103, Sam, 60000, Null
+	104, Max, 90000, Null
+	 
+	select empid,ename,salary,manager_id
+	from employee e1 join employee e2
+	on e1.empid=e2.empid
+	where e1.salary>e2.salary
+	
+	################################## PERSISTENT SYSTEMS ######################################################################################################
+	
+	Given an unsorted integer array nums, return the smallest missing positive integer.
+	example:
+	Input: nums = [3,4,-1,1]
+	Output: 2
+	Explanation: 1 is in the array but 2 is missing.
+	
+	
+	nums = [3,4,-1,1]
+	minimum=min(nums)
+	maximum=max(nums)
+	sort(nums)
+	arranged_list=[]
+	for j in nums:
+			if nums[j]-nums[j+1]>1
+				print("number is ",nums[j])
+					if 
+			
+		
+	
+	Numpy-
+	
+	Convert the list num = [3,6,1,5,9,4,8,2,7] into 3x3 array. 
+	Condition, if the value in the list is an even number, corresponding value in the array will be 0 or else 1.
+	
+	array=[]
+	for i in range(len(nums):
+		for j in range(len(nums):
+			for k in range(len(nums):
+				if (i%2==0 & j %2==0 & k%2==0):
+					array[i][j][k]=0
+				else:
+					array[i][j][k]=1
+	print("array",array)
+				
+					
+					
+	SQL:
+	
+	Find the total salary amount spent by manager for each dept, for all the employees who has joined the company in past one year and have completed the probation period of 6 months.
+	 
+	emp table
+	emp_id, emp_name, manager_id, dept_id, date_of_joining(YYYY/MM/DD)
+	 
+	Dept table
+	dept_id, dept_name
+	 
+	salary table
+	emp_id, salary
+	
+	
+	sol-
+	
+	
+	select e.emp_id,manager_id,sum(salary),d.dept_name
+	from emp_table e join dept_table d 
+	on e.dept_id=d.dept_id
+	join salary table s on
+	e.emp_id=s.emp_id
+	where date_of_joining between DATEADD(months,6,get_date()) and DATEADD(year,1,get_date())
+	group by e.emp_id,d.dept_name
+	
+	
+	
+############################## Kcloud9 ######################################################################################
+
+Jenkins-why CI/CD
+Top down or bottom up approach in Datawarehouse
+Types of fact tables
+Airflow-xbox,gigabits
+Databricks why not suitable
+
+
+
+
+sql:
+
+Table-
+product_name 	product_id	sales
+abc			1			1000
+cde			2			2000
+abc			1			600
+efg			3			800
+z			4			100
+EFA			8			80
+
+
+Rank-->
+
+select product_name,product_id,rank() over (partition by product_id order by sales desc) as sales_rank
+from table
+group by product_id,product_name
+	
+output-	
+product_name 	product_id	sales_rank
+abc			1					1
+cde			2					2
+abc			1					1
+efg			3					3							
+z			4			        4
+EFA			8				    5
+	
+	
+Dense rank----->
+select product_name,product_id,dense_rank() over (partition by product_id order by sales) as sales_rank
+from table
+group by product_id,product_name
+	
+	output-
+	product_name 	product_id	sales_rank
+abc			1					1
+cde			2					3
+abc			1					1
+efg			3					4							
+z			4			
+EFA			8				
+	
+	
+	
+	
+
+
+--There are three tables in our Database (DEPARTMENT,EMPLOYEE & SALARY).
+--DEPARTMENT(DeptCode,DeptName,Location).
+--EMPLOYEE(EmpCode,EmpFName,EmpLName,Email,PhoneNo,Job,Manager,HireDate,DeptCode).
+--SALARY(EmpCode,Basic,Additions,Deductions).
+--Please Use these tables to write your query.
+	
+	
+
+	
+	
+	########################### Kcloud ###########################################
+	Q.How to find out count of persons that can be in the lift with less than 100 weight?
+	person Weight
+	abc		15		
+	cde		50
+	
+	
+	select count(person),sum(weight) as weight
+	from lift
+	where weight<=100
+	group by weight,person
+	
+	
+	Q.How to initialize a missing variable in Airflow
+	Q.csum in sql?
+	consecutive sum" often refers to the cumulative sum or running sum of values in a sequence, where each value is the sum of the current value and all preceding values in the sequence.
+	
+	SELECT 
+	    column_name,
+	    SUM(column_name) OVER (ORDER BY some_ordering_column) AS consecutive_sum
+	FROM 
+	    table_name;
+	
+	Q.diff btw dockerization and virtualization?
+	Virtualization:
+	• Imagine you have one physical computer (let's call it "Computer A").
+	• With virtualization, you can create multiple virtual computers (let's call them "Virtual Computers B, C, and D") on Computer A.
+	• Each virtual computer (B, C, D) behaves like a real computer with its own operating system, applications, and resources.
+	• Virtualization allows you to run different operating systems and applications simultaneously on the same physical hardware (Computer A).
+	Dockerization:
+	• Now, let's say you have one virtual computer (let's call it "Virtual Computer E" running on Computer A).
+	• With dockerization, you can run multiple small applications (like mini-computer programs) on Virtual Computer E.
+	• Each application runs in its own isolated container, kind of like a separate box, with only the specific things it needs to run (called dependencies).
+	• Dockerization allows you to package applications with all their dependencies into containers, making them portable and easy to deploy across different environments.
+	
+	
+	• Virtualization creates multiple virtual computers on one physical computer.
+	• Dockerization creates isolated containers on one virtual or physical computer to run individual applications.
+	
+	virtualization is like having multiple computers in one, then dockerization is like having multiple mini-computers inside one computer.
+	
+	
+
+	
+	Q.what is a whl file
+	A .whl file is a file format used in Python for packaging and distributing Python libraries and modules. It stands for "wheel" and is essentially a built distribution format.
+	
+	In Python development, when developers create libraries or modules, they often want to share them with others. Instead of sharing individual Python files, they package everything into a single .whl file. This file contains all the necessary code, resources, and metadata needed for installing the library or module. It makes it easier for others to install and use the Python package without worrying about dependencies or missing files.
+	
+	
+	Q.how to tune large tables join in spark?
+	A. Partitioning: Ensure that both the tables being joined are partitioned on the join keys. This ensures that rows with the same join key are colocated in the same partition, minimizing data shuffling during the join operation.
+
+scalaCopy code
+// Assuming df1 and df2 are DataFrames to be joined df1.repartition($"join_key").join(df2.repartition($"join_key"), Seq("join_key")) 
+	B. Broadcast Joins: Use broadcast joins for small dimension tables that can fit entirely in memory across all executor nodes. This avoids shuffling the larger table across the network.
+
+scalaCopy code
+import org.apache.spark.sql.functions.broadcast // Assuming df1 is the large table and df2 is the small dimension table df1.join(broadcast(df2), Seq("join_key")) 
+	C. Sort-Merge Joins: If both tables are sorted on the join key, Spark can perform a more efficient sort-merge join instead of a hash join.
+
+scalaCopy code
+// Assuming both df1 and df2 are sorted on the join key df1.sort($"join_key").join(df2.sort($"join_key"), Seq("join_key"), "inner") 
+	D. Increase Parallelism: Increase the number of partitions for both input DataFrames to increase parallelism during the join operation.
+
+scalaCopy code
+// Assuming df1 and df2 are DataFrames to be joined df1.repartition(numPartitions).join(df2.repartition(numPartitions), Seq("join_key")) 
+	E. Memory Management: Adjust Spark memory configurations (spark.executor.memory, spark.driver.memory, etc.) to ensure sufficient memory for shuffle operations during the join.
+	F. Caching: Cache or persist input DataFrames if they are reused multiple times in the same job, reducing recomputation.
+
+scalaCopy code
+df1.cache() df2.cache() // Join operation df1.join(df2, Seq("join_key")) 
+	G. Avoid Cartesian Product: Ensure that the join condition is restrictive enough to avoid generating a Cartesian product of the tables.
+
+scalaCopy code
+// Assuming df1 and df2 are DataFrames to be joined df1.join(df2, Seq("join_key")).filter("some_condition")
+	
+	
+	Q.Does hadoop not uses in-memory?
+	Yes it uses in memory.
+	HDFS Caching: Hadoop Distributed File System (HDFS) supports caching frequently accessed data in memory. The HDFS caching mechanism allows data blocks to be cached in the memory of DataNodes, reducing disk I/O for subsequent reads.
+	
+	
+	Q.how to get inboud preceding to current row value in sql?
+	Q.what to do if we delete a file in s3 and hive shows file not found error?
+	Q.what to do if we havem loaded data in hive but it shows no tables found error?
+	Q.diff btw hive and spark?
+	Q.Databricks cluster resize
+	
+	MSCK REPAIR TABLE command in Apache Hive is used to repair the metadata of partitioned tables when partitions are added or removed directly in the underlying data storage (e.g., HDFS or S3) without using Hive commands. 
+	
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+			
+		
+			
+
+
