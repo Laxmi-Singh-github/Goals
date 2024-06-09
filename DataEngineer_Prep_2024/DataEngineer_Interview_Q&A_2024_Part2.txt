@@ -1150,6 +1150,308 @@ o/p:apple_share,exit_amount,balance,person_id
 def add(x,y):
 	
 
+#########################################  Python Pandas
+
+Data Engineer on Python
+
+Job description short summary: 
+
+Extract Data from excel/csv present in the unstructured unclean format into structured tabular clean excel format, using python pandas and other libraries using rule based strategies
+
+ Skill set needed (from top priority to least priority):
+
+Hands -on experience 
+
+Development with Python Programming (Must)
+
+Development with Python Pandas Library (Must) 
+
+For data extraction
+
+For data Manipulation
+
+For data wrangling
+
+Can logically think of complex algorithms to extract information from 2 dimensional Arrays
+
+Familiarity cloud services (Azure)
+
+Familiarity with Python Openpxyl Library (Good to have but not necessary)
+
+Familiarity with Azure Data Factory(Good to have but not necessary, on job learning)
+
+Reference  questions to evaluate on:
+
+Scenario based questions (representative code snippets by candidate) to 
+
+Filter out rows in a dataframe , using condition on specific column
+perform outer join in pandas/ Difference between outer, inner , left and right joins
+Remove Duplicate from python list
+generate a random alphanumeric password of a specified length
+other scenarios
+Dataframe format conversions
+
+Ex: 
+
+ 
 
 
 
+Q)
+
+ 
+
+Input file-->
+
+Year
+
+Quarter
+
+Sales
+
+2018
+
+Q1
+
+1000
+
+2018
+
+Q2
+
+1500
+
+2019
+
+Q1
+
+1200
+
+2019
+
+Q2
+
+1800
+
+2020
+
+Q1
+
+1400
+
+2020
+
+Q2
+
+1600
+
+ 
+
+ 
+
+Output file-->
+
+Quarter
+
+Q1
+
+Q2
+
+Year
+
+ 
+
+ 
+
+2018
+
+1000
+
+1500
+
+2019
+
+1200
+
+1800
+
+2020
+
+1400
+
+1600
+
+ 
+
+ANS.)
+
+import pandas as pd
+
+ 
+
+# Read the input file
+
+df = pd.read_csv('input_file.csv')
+
+ 
+
+# Pivot the table to get the desired output
+
+output_df = df.pivot(index='Year', columns='Quarter', values='Sales')
+
+ 
+
+# Reset the index and rename the columns
+
+output_df = output_df.reset_index().rename_axis(None, axis=1)
+
+ 
+
+# Print the output
+
+print(output_df)
+
+ 
+
+------------------------ PYTHON
+
+list=[["Lima","Sao Paulo"],["New York","Lima"],["London","New York"]]
+
+ 
+---------------------------------------------------------------------------------------------------------------------
+
+
+Fill NULL values in dataframe 
+
+
+Ans.)
+
+import pandas as pd
+
+ 
+
+# Create a DataFrame with null values
+
+df = pd.DataFrame({'A': [1, 2, None, 4, 5], 'B': [None, 10, 20, None, 50]})
+
+ 
+
+# Fill null values with a specific value (e.g., 0)
+
+df_filled = df.fillna(0)
+
+ 
+
+# Print the DataFrame with filled values
+
+print(df_filled)
+
+ 
+
+ 
+
+________________________________________________________________
+
+ 
+
+Multi indexing in pandas
+
+Programmatic identification of numerical or categorical columns
+
+What is a pivot table, how can we convert a data frame into pivot table format using pandas
+
+Conceptual questions like difference Between Python List and Python tuple  , Sort dictionary in Python by its values , list comprehension,  decorator and its use , lambda function , generator
+
+Other questions
+
+ 
+
+ 
+
+#################################################################################################################################
+
+
+
+PYTHON---------------------->
+
+Q1. Find out city which is not related to any other city
+
+list=[["Lima","Sao Paulo"],["New York","Lima"],["London","New York"]]
+
+ 
+
+ 
+
+Ans.)
+
+all_cities=set()
+
+related_cities=set()
+
+foriinlist:
+
+all_cities.add(i[0])
+
+related_cities.add(i[1])
+
+ 
+
+print("Allcities",all_cities,related_cities)
+
+unrelated_cities=all_cities-related_cities
+
+print("unrealtedcities:",unrelated_cities)
+
+ 
+
+ 
+
+Q2. Find the minimum,sum of all the first elements in the list?
+
+x = [-1,2,3]
+
+y = [1,-5,4]
+
+z = [0,1,5]
+
+ 
+
+Ans.)
+
+new_xyz=zip(x,y,z)
+
+for i in new_xyz:
+
+print(max(i))
+
+ 
+
+ 
+
+Q3.Find all the prime numbers in the list?
+
+List=[1,10,7,50,49,2]
+
+ 
+
+Q4.Palindrome string?
+
+String="abcba"
+
+ 
+
+Q5.Write python code?
+
+list=['python','aws','code']
+
+ 
+
+Output needed -> python@aws@code
+
+ 
+
+Ans.)
+
+Print('@'.join(list)
+
+ #############################################################################################################################################################
