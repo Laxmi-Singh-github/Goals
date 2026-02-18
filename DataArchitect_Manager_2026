@@ -72,6 +72,190 @@ list=[1,2,...100]
 
 set(list)
 
+ALL ANSWERS------->
+
+
+1️⃣ Find IDs in df but not in df2
+
+✅ SQL solution (correct way)
+
+SELECT id 
+FROM df
+WHERE id NOT IN (SELECT id FROM df2);
+
+Alternative (better for NULL safety)
+
+SELECT id
+FROM df d
+WHERE NOT EXISTS (
+    SELECT 1 FROM df2 d2 WHERE d.id = d2.id
+);
+
+✔ Explanation
+	•	NOT IN returns rows from df missing in df2
+	•	NOT EXISTS avoids issues if df2.id has NULLs
+	•	Your query had:
+	•	incorrect syntax (not exists in)
+	•	unnecessary group by
+
+✅ PySpark equivalent
+
+df3 = df.join(df2, "id", "left_anti")
+
+✔ Explanation
+	•	left_anti join = rows in left dataframe not in right
+	•	Most efficient PySpark method
+
+2️⃣ Employee names starting with “S”
+
+✅ SQL
+
+SELECT emp_name
+FROM employee
+WHERE emp_name LIKE 'S%';
+
+✔ Explanation
+	•	'S%' means:
+	•	Starts with S
+	•	Followed by any characters
+
+✅ PySpark
+
+df.select("emp_name").filter(df.emp_name.startswith("S"))
+
+OR:
+
+df.filter("emp_name LIKE 'S%'").select("emp_name")
+
+✔ Explanation
+	•	startswith() = cleaner PySpark method
+	•	SQL expression also supported inside filter
+
+3️⃣ Employee with Manager Name (Self Join)
+
+❌ Your SQL had reversed join condition.
+
+✅ Correct SQL
+
+SELECT e.emp_name, m.emp_name AS manager_name
+FROM employee e
+LEFT JOIN employee m
+ON e.manager_id = m.emp_id;
+
+✔ Explanation
+	•	Employee table joined to itself:
+	•	e → employee
+	•	m → manager
+	•	manager_id references emp_id
+
+✅ PySpark version
+
+from pyspark.sql.functions import col
+
+df_alias1 = df.alias("e")
+df_alias2 = df.alias("m")
+
+df_manager = df_alias1.join(
+    df_alias2,
+    col("e.manager_id") == col("m.emp_id"),
+    "left"
+).select(
+    col("e.emp_name"),
+    col("m.emp_name").alias("manager_name")
+)
+
+✔ Explanation
+	•	Use aliases for self join
+	•	Left join keeps employees without managers
+
+4️⃣ Python List Indexing
+
+Given:
+
+lst = [3,5,6,7,8]
+
+✅ Find 3rd and 4th elements
+
+lst[2:4]
+
+Output:
+
+[6, 7]
+
+✔ Explanation
+	•	Python indexing starts at 0
+	•	Slice [start:end] excludes end index
+
+Position	Index
+1st	0
+2nd	1
+3rd	2
+4th	3
+
+❗ About:
+
+lst[-1:1]
+
+Output:
+
+[]
+
+✔ Explanation
+	•	-1 = last element index
+	•	But slicing moves forward by default
+	•	Since -1 > 1, nothing returned
+
+Reverse slice example:
+
+lst[-1:-3:-1]
+
+Output:
+
+[8, 7]
+
+5️⃣ Find duplicates efficiently in list
+
+❌ Your example:
+
+set(list)
+
+This removes duplicates but doesn’t identify them.
+
+✅ Efficient duplicate detection
+
+Method 1 — Using set tracking (best O(n))
+
+lst = [1,2,3,2,4,5,1]
+
+seen = set()
+duplicates = set()
+
+for x in lst:
+    if x in seen:
+        duplicates.add(x)
+    seen.add(x)
+
+print(duplicates)
+
+Output:
+
+{1,2}
+
+Method 2 — Using collections.Counter
+
+from collections import Counter
+
+[x for x, c in Counter(lst).items() if c > 1]
+
+✔ Explanation
+	•	Both run in O(n) time
+	•	First method uses minimal memory
+	•	Counter gives frequency also
+
+
+
+
+
 
 
 //////////////////////////////////////////////
