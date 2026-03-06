@@ -1,3 +1,579 @@
+ /////////
+
+Quantiphi- L1 round- Solution Principle architect
+
+Project related:
+- If powerbi is the only front end that supports redshift, why cant i use athena and save money. What are the different transformations happen in each?
+- How much data is in athena and redshift 
+- Iceberg tables and apache hudi and delta tables, does that give you advance query capability that athena might restrict you intead of redshift
+- Redshift which cluster are you using?
+- How to allow governance such as one can access table a and another can do table b only- Lake formation (s3, iceberg,glue catalog)for column or row level security control- RLS and CLS in redshift 
+- Lake formation- drawback- sagemaker unified -recently launched for limitation of lake formation 
+- Have and how deployed cloudformation templates and stack
+- Fundamental diff btw working with glue vs emr
+- Architecture built- Files are sent in s3, 1 min 1 file, 10 files in next 5 mins and 1000 in 6 hrs. SLA is 30 mins(the moment the files lands in s3 till it lands in target- everything like ingestion, transformation, monitoring,auditing etc) . How will you design this whole pipelines, which services to use. How to make it cost efficient one. The file should be available to end user before the 30th mins not like 2 mins. Think of scalable, cost effective consider logging and monitoring.Assume parquet file formats. 
+Question:
+- Since i said sqs then glue, will there be those many etl glue jobs created everytime a file arrives for processing?- Sqs-batch size or batch window( whenever processing if reaches batch size 100 or batch time- 10 mins, at that time queue opens and lambda can process and submit batch wise, less resources)
+- Lambda concurrency is 1000 in an account
+- If one bad file came in batch, like schema, file names. what to do and how to go about it?eg 500 are bad,500 are still processing- from operational standpoint what can be done- Step functions maybe - status of journey about different stages
+- Dynamo db and RDS- what is LSI and GSI ( Lsi-create start of the table, gsi- post creation of a sort key)
+- Dms sct- move data from rds to redshuft- Zero etl
+(plug and play)
+- why need sct(schema conversion tool), when to use sct or dms(use sct incase of heterogeneous migration engines)
+- Databricks-what is lakehouse, if managed table or external table, id,name, address(inserted one record, inserted second record, deleted first record).
+What happy backend s3, adls file, how do they and what entries do they populate. -one folder created with table a and it has one file with 3 records, how would it look like? 
+- Why cant we update in athena because it doesnot have lakehouse capabilitity as it just a datalake. 
+- what is delta lake and how does it store information. - 2 files are created- 1 data file and another is delta log file
+
+
+
+
+Answers:
+
+1. If Power BI is the only frontend supporting Redshift, why not use Athena and save money?
+
+First, clarify the incorrect assumption.
+
+Both Amazon Redshift and Amazon Athena can connect to Microsoft Power BI.
+
+But they serve different workloads.
+
+Redshift
+	•	Fully managed data warehouse
+	•	Optimized for BI workloads
+	•	Supports:
+	•	materialized views
+	•	stored procedures
+	•	workload management
+	•	row/column security
+	•	high concurrency
+
+Transformations in Redshift
+	•	Complex joins
+	•	Aggregations
+	•	Window functions
+	•	Stored procedures
+	•	ELT transformations
+
+Example:
+
+Sales fact table joined with 10 dimension tables
+Daily aggregates
+Ranking customers by region
+
+Athena
+
+Serverless SQL engine on Amazon S3.
+
+You pay per query scanned.
+
+Good for:
+	•	ad hoc queries
+	•	data lake exploration
+
+Limitations:
+	•	slower for complex BI queries
+	•	limited concurrency
+	•	no native indexing
+	•	weaker governance
+
+Transformations in Athena
+
+Mostly:
+	•	simple SQL
+	•	filtering
+	•	basic aggregation
+
+Example:
+
+SELECT country, SUM(revenue)
+FROM sales
+GROUP BY country
+
+Architect Answer
+
+Use Athena for exploration, Redshift for production BI dashboards.
+
+2. How much data is in Athena vs Redshift?
+
+Athena
+
+Data lives in S3
+
+Can query PB scale easily.
+
+Example:
+
+1 PB clickstream logs in S3
+Athena queries directly
+
+But performance degrades with complex joins.
+
+Redshift
+
+Typical size:
+	•	TB → PB scale
+
+But data must be loaded into cluster storage.
+
+Example:
+
+10 TB curated analytics layer
+Loaded into Redshift
+
+Architect pattern:
+
+Raw Data → S3 → Athena
+Curated BI → Redshift
+
+3. Iceberg / Hudi / Delta tables – do they give Athena advanced capabilities?
+
+Yes.
+
+These are open table formats for data lakes.
+
+Examples:
+	•	Apache Iceberg
+	•	Apache Hudi
+	•	Delta Lake
+
+They add warehouse-like capabilities to data lakes.
+
+Capabilities
+
+Feature	Data lake	Iceberg/Hudi/Delta
+Update	❌	✅
+Delete	❌	✅
+ACID	❌	✅
+Time travel	❌	✅
+Schema evolution	❌	✅
+
+Example:
+
+UPDATE customers
+SET address='Mumbai'
+WHERE id=100
+
+Athena alone cannot do this.
+
+But Athena + Iceberg can.
+
+Still, query performance and concurrency are better in Redshift.
+
+4. Redshift cluster – which type?
+
+Architect should mention node types.
+
+Node Types
+
+RA3 nodes (modern)
+
+Recommended.
+
+Benefits:
+	•	compute/storage separation
+	•	managed storage
+	•	scale independently
+
+Example:
+
+ra3.4xlarge
+ra3.16xlarge
+
+DC2 nodes
+
+Older generation.
+
+High performance but fixed storage.
+
+Architect answer:
+
+	We use RA3 clusters because they allow separation of compute and storage and reduce cost for large datasets.
+
+5. Governance – access to specific tables
+
+Use AWS Lake Formation.
+
+Architecture:
+
+S3
+ ↓
+Glue Catalog
+ ↓
+Lake Formation permissions
+ ↓
+Athena / Redshift Spectrum
+
+Lake Formation supports:
+
+Table level
+
+User A → table A
+User B → table B
+
+Column level security
+
+Example:
+
+Table: customers
+Columns:
+id
+name
+salary
+
+Finance team → salary
+
+Sales team → no salary column
+
+Row level security (RLS)
+
+Example:
+
+Region manager can see only their region data
+
+Redshift also supports RLS and CLS internally.
+
+6. Drawback of Lake Formation
+
+Problems:
+	1.	Complex permission management
+	2.	Cross-account access complexity
+	3.	Performance overhead sometimes
+	4.	Hard debugging of access issues
+
+AWS recently introduced Amazon SageMaker Unified Studio to simplify data governance and discovery.
+
+7. CloudFormation templates and stacks
+
+Use AWS CloudFormation for Infrastructure as Code.
+
+Example resources:
+
+S3
+Lambda
+Glue Job
+IAM roles
+Redshift cluster
+
+Template
+
+YAML or JSON
+
+Example snippet
+
+Resources:
+  MyBucket:
+    Type: AWS::S3::Bucket
+
+Stack
+
+Deployment instance of template.
+
+Benefits:
+	•	repeatable infrastructure
+	•	version control
+	•	automated deployment
+
+8. Glue vs EMR
+
+Compare AWS Glue vs Amazon EMR.
+
+Feature	Glue	EMR
+Serverless	Yes	No
+Cluster management	No	Yes
+Spark control	Limited	Full
+Cost control	Easier	Flexible
+Use case	ETL pipelines	Big data processing
+
+Example:
+
+Glue:
+
+ETL job converting CSV → Parquet
+
+EMR:
+
+Large Spark ML pipeline
+Petabyte-scale processing
+
+9. Architecture design question (S3 files + 30 min SLA)
+
+Scenario:
+
+Files arrive:
+1 file / min
+10 files in 5 mins
+1000 files in 6 hours
+SLA = 30 minutes
+
+Architecture
+
+S3
+ ↓
+S3 Event Notification
+ ↓
+SQS Queue
+ ↓
+Lambda (batch trigger)
+ ↓
+Glue ETL
+ ↓
+Curated S3
+ ↓
+Redshift / Athena
+
+Monitoring:
+
+CloudWatch
+Step Functions
+SNS alerts
+
+Cost Optimization
+
+Use batching.
+
+Instead of processing every file:
+
+Batch = 100 files
+Batch window = 10 min
+
+Benefits:
+	•	fewer Glue jobs
+	•	lower cost
+
+10. Will Glue jobs trigger for every file?
+
+No.
+
+Use SQS batching.
+
+Example:
+
+Batch size = 100
+Batch window = 10 minutes
+
+Lambda processes batch.
+
+Then submit single Glue job.
+
+11. Lambda concurrency
+
+Default concurrency = 1000 per account
+
+If traffic increases:
+
+request limit increase
+
+or use SQS buffering.
+
+12. Bad files in batch
+
+Example:
+
+Batch = 1000 files
+500 bad
+500 good
+
+Solution:
+	1.	Validate schema in Lambda
+	2.	Move bad files to quarantine S3 bucket
+	3.	Continue processing good files
+
+Architecture:
+
+Step Functions
+
+Track pipeline stages:
+
+Ingestion
+Validation
+Transformation
+Load
+
+Maintain status table.
+
+13. DynamoDB – LSI vs GSI
+
+Using Amazon DynamoDB.
+
+Local Secondary Index (LSI)
+	•	Same partition key
+	•	different sort key
+	•	defined during table creation
+
+Example:
+
+PK = customer_id
+SK = order_date
+
+LSI:
+
+SK = order_amount
+
+Global Secondary Index (GSI)
+	•	Different partition key
+	•	can create after table creation
+
+Example:
+
+Main table:
+
+PK = order_id
+
+GSI:
+
+PK = customer_id
+
+Used for new query patterns.
+
+14. DMS vs SCT
+
+Tools:
+	•	AWS Database Migration Service
+	•	AWS Schema Conversion Tool
+
+DMS
+
+Migrates data.
+
+Example:
+
+RDS → Redshift
+
+Supports:
+	•	full load
+	•	CDC replication
+
+SCT
+
+Converts schema.
+
+Used when databases differ.
+
+Example:
+
+Oracle → PostgreSQL
+
+When both used
+
+SCT → convert schema
+DMS → move data
+
+15. Zero ETL
+
+AWS introduced Zero ETL integration.
+
+Example:
+
+RDS Aurora → Redshift
+
+Automatic replication without pipeline.
+
+16. Databricks Lakehouse
+
+Concept in Databricks.
+
+Lakehouse combines:
+
+Data Lake + Data Warehouse
+
+Storage:
+
+S3 / ADLS
+
+Table types:
+
+Managed table
+
+Databricks controls storage.
+
+External table
+
+Data stored externally.
+
+Example Table Operations
+
+Table:
+
+id | name | address
+
+Operations:
+
+Insert record 1
+Insert record 2
+Delete record 1
+
+Backend in storage:
+
+Files created:
+
+part-0001.parquet
+part-0002.parquet
+
+Delete does not physically remove immediately.
+
+Instead:
+
+Delta log records operation.
+
+17. Why Athena cannot update data
+
+Athena queries files directly in S3.
+
+It does not manage table transactions.
+
+Therefore:
+
+UPDATE
+DELETE
+MERGE
+
+not supported (unless using Iceberg).
+
+18. Delta Lake
+
+Technology: Delta Lake
+
+It provides ACID transactions on data lake.
+
+Structure:
+
+table_folder/
+ ├── part-000.parquet
+ ├── part-001.parquet
+ └── _delta_log/
+       ├── 000000.json
+       ├── 000001.json
+
+Data files
+
+Parquet files with actual data.
+
+Delta log
+
+Transaction history:
+
+insert
+update
+delete
+schema changes
+
+Supports:
+	•	time travel
+	•	rollback
+	•	ACID transactions
+
+How Architect Should Answer (Important Tip)
+
+Always answer in 3 layers:
+
+1️⃣ Business problem
+2️⃣ Architecture decision
+3️⃣ Trade-offs
+
+
+
+
 
 //////////////////// 18 Feb 2026 ///////////////////
 
