@@ -1,3 +1,6 @@
+
+**  Year 2026 Interview Q&A **
+
  ///////// Infobeans- 07 May 2026
 
 1. Find the top 3 employees with highest salary in each department
@@ -7,7 +10,6 @@ Answer:
 “To get the top 3 employees per department, I would use a window function like ROW_NUMBER() or RANK() partitioned by department and ordered by salary descending.
 
 For example in SQL:
-
 SELECT *
 FROM (
     SELECT emp_id, dept_id, salary,
