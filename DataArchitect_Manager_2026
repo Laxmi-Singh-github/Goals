@@ -1,4 +1,169 @@
- /////////
+ ///////// Infobeans- 07 May 2026
+
+1. Find the top 3 employees with highest salary in each department
+
+Answer:
+
+“To get the top 3 employees per department, I would use a window function like ROW_NUMBER() or RANK() partitioned by department and ordered by salary descending.
+
+For example in SQL:
+
+SELECT *
+FROM (
+    SELECT emp_id, dept_id, salary,
+           ROW_NUMBER() OVER (PARTITION BY dept_id ORDER BY salary DESC) AS rn
+    FROM employees
+) t
+WHERE rn <= 3;
+
+This ensures we get the top 3 highest-paid employees in each department.”
+
+2. Fetch API ingestion data in Python and store it in S3
+
+Answer:
+
+“I would use Python libraries like requests to fetch API data and boto3 to upload it to S3.
+
+Steps:
+	1.	Call the API using requests.get()
+	2.	Convert the response to JSON
+	3.	Optionally transform it using pandas
+	4.	Upload to S3 using boto3
+
+Example:
+
+import requests
+import boto3
+import json
+
+response = requests.get("https://api.example.com/data")
+data = response.json()
+
+s3 = boto3.client('s3')
+s3.put_object(
+    Bucket='my-bucket',
+    Key='data.json',
+    Body=json.dumps(data)
+)
+
+This is commonly used in data pipelines for ingestion.”
+
+3. How to implement incremental data load using Python
+
+Answer:
+
+“Incremental loading means processing only new or updated data instead of full loads.
+
+Common approaches:
+	•	Using timestamps (e.g., last_updated)
+	•	Using primary keys or IDs
+	•	Maintaining a checkpoint file or metadata table
+
+Example approach:
+	•	Store the last processed timestamp
+	•	Fetch data where updated_at > last_timestamp
+	•	Update the timestamp after processing
+
+This improves efficiency and reduces processing cost.”
+
+4. How to check failures and resolve them in ADF pipelines
+
+Answer:
+
+“In Azure Data Factory, I monitor pipeline failures using:
+	•	ADF Monitor tab
+	•	Activity run logs
+	•	Error messages and output logs
+
+To resolve:
+	•	Identify failed activity
+	•	Check error details (e.g., connection issues, schema mismatch)
+	•	Use retry policies
+	•	Add error handling using ‘On Failure’ paths
+	•	Implement logging and alerts via Azure Monitor
+
+This helps in quickly diagnosing and fixing issues.”
+
+5. What is Data Governance
+
+Answer:
+
+“Data governance is the process of managing data availability, usability, integrity, and security across an organization.
+
+It includes:
+	•	Data quality management
+	•	Data security and access control
+	•	Metadata management
+	•	Compliance with regulations
+
+The goal is to ensure data is accurate, consistent, and trustworthy for decision-making.”
+
+6. What are decorators in Python
+
+Answer:
+
+“Decorators in Python are functions that modify the behavior of other functions without changing their code.
+
+They are used for:
+	•	Logging
+	•	Authentication
+	•	Performance measurement
+
+Example:
+
+def my_decorator(func):
+    def wrapper():
+        print("Before function call")
+        func()
+        print("After function call")
+    return wrapper
+
+@my_decorator
+def say_hello():
+    print("Hello")
+
+say_hello()
+
+Decorators help in writing reusable and clean code.”
+
+7. Kafka – What are topics and partitions
+
+Answer:
+
+“In Apache Kafka:
+	•	A topic is a category or stream of data where messages are stored.
+	•	A partition is a division of a topic that allows data to be distributed and processed in parallel.
+
+Each partition is ordered and helps Kafka scale horizontally.”
+
+8. What is consumer lag in Kafka
+
+Answer:
+
+“Consumer lag is the difference between the latest message in a Kafka partition and the last message consumed by a consumer.
+
+It indicates how far behind the consumer is.
+
+High lag means:
+	•	Slow processing
+	•	Potential bottlenecks
+
+It’s an important metric for monitoring system performance.”
+
+9. What happens when a Kafka broker goes down
+
+Answer:
+
+“When a Kafka broker fails:
+	•	Partitions on that broker become unavailable temporarily
+	•	If replication is enabled, another replica becomes the leader
+	•	Producers and consumers automatically reconnect to the new leader
+
+Kafka ensures fault tolerance using replication and leader election, so there is minimal data loss if configured properly.”
+
+
+
+//////////////////
 
 Quantiphi- L1 round- Solution Principle architect
 
