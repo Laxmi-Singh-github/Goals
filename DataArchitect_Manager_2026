@@ -203,136 +203,132 @@ Add file
 Remove file
 Schema
 Metadata
+ 
+Contains:
+File metadata
+Schema
+Transaction history
+Operation type (MERGE, INSERT, DELETE)
+Stats (min/max values)
 
-
-
-Checkpoint parquet files
-
+_delta_log contents:
+Stored as JSON + checkpoints
 
 EXAMPLE:
 {
   "add": {
-    "path": "part-000.snappy.parquet",
-    "size": 12345
+    "path": "part-000.parquet",
+    "size": 12345,
+    "partitionValues": {"date": "2025-05-01"}
+  }
+}
+
+{
+  "remove": {
+    "path": "old-file.parquet"
   }
 }
 
 
-6. When not to use partitioning
+Q6. When not to use partitioning
 ANSWER:
 
 High cardinality column (user_id)
-Small tables
-No filtering in queries
+Small tables/datasets (<1TB)
+No filtering in queries(BI queries scan entire table)
 Causes too many small files
 
 
-7. In spark explain this execution flow
+Q7. In spark explain this execution flow
 df = spark.read.parquet("s3://bucket")
 df1 = df.groupby("region")
 df2 = df1.agg(sum("amount"))
 
 ANSWER:
+*Logical Plan:
+Read parquet→ GroupBy → Aggregate
 
-
-Logical Plan:
-
-Read → GroupBy → Aggregate
-
-
-
-Catalyst optimizer:
-
+*Catalyst optimizer:
 Predicate pushdown
 Column pruning
 
+*Physical Plan:
+File scan
+Shuffle (groupBy triggers shuffle)
+Partial aggregation → final aggregation
 
-
-Physical Plan:
-
-Shuffle on region column
-
-
-
-Execution:
-
+*Execution:
 Stage 1: Read data
 Stage 2: Shuffle + aggregation
-
-
 
 
 8. Difference between repartition and coalesce. What happens internally when df.repartition(200)
 ANSWER:
 REPARTITION:
-
 Full shuffle
 Even data distribution
 
-df.repartition(200)
-
+e.g for :- df.repartition(200)
 INTERNAL:
-
-Shuffle stage created
-Hash partitioning applied
-200 output partitions generated
+-Full shuffle triggered
+-Hash partitioning applied
+-200 output partitions generated, Data redistributed evenly
 
 COALESCE:
-
 No shuffle (or minimal)
 Just merges partitions
 
 
 9. Why coalesce function makes job slower
 ANSWER:
-
-No proper rebalancing
-Creates skew
-Some partitions become large
+No shuffle → uneven partition sizes(No proper rebalancing)
+Some partitions overloaded, Creates skew
+Some partitions become large → Task skew
 Long-running tasks (stragglers)
-
+e.g, 1 partition might hold 80% data → slow
 
 10. How does AQE change the repartition behaviour internally
 ANSWER:
 ENABLE:
 SET spark.sql.adaptive.enabled = true;
 
-AQE FEATURES:
+AQE FEATURES:AQE optimizes at runtime, not compile time
 
-Dynamic partition adjustment
+Dynamic partition adjustment-Instead of fixed 200 → runtime optimized
 Coalesce shuffle partitions
-Skew join handling
-Switch join type (sort → broadcast)
+Skew join handling-Splits skewed partitions
+Dynamic Switch join type (sort merge→ broadcast)
 
 
 11. How you decide ideal partition count in spark
 ANSWER:
-RULE:
+Partitions = (Data Size / 128MB)
 
+Rule of thumb:
 2–4 partitions per core
 
 Example:
-
 100 cores → 200 to 400 partitions
 
 FACTORS:
-
-Data size
+Data size/workload size
 Cluster cores
 Shuffle size
 Skew
 
+ Avoid:
+Too few → underutilization
+Too many → overhead
 
-12. Power BI query slow (20 sec → 18 mins), 4B rows
+
+12. Power BI query slow (20 sec → 18 mins), 4Billion rows
 ANSWER:
-STEP 1: CHECK PLAN
-
+STEP 1: CHECK PLAN, identify issues
 Full scans?
 Bad join type?
 Skew?
 
 STEP 2: FIX DATA MODEL
-
 Use star schema
 Dimension tables
 Aggregated tables
@@ -340,28 +336,30 @@ Aggregated tables
 OPTIMIZE:
 OPTIMIZE transactions ZORDER BY (customer_id);
 
-PARTITION:
+Create aggregates:
+CREATE TABLE agg AS
+SELECT region, date, SUM(sales)
+FROM transactions
+GROUP BY region, date
 
+PARTITION:
 By date
 
 CREATE GOLD TABLES:
-
 Pre-aggregated datasets
 
 
 13. Difference between sort merge join and broadcast join
 ANSWER:
 SORT MERGE JOIN:
-
 Used for large tables
-Requires shuffle
+Requires shuffle + sort
 Slower
 
 BROADCAST JOIN:
-
 Small table copied to all nodes
 No shuffle on large table
-Faster
+Faster- if small table <10GB
 
 EXAMPLE:
 from pyspark.sql.functions import broadcast
@@ -370,37 +368,37 @@ df.join(broadcast(df_small), "id")
 
 14. How does skew happen internally during spark
 ANSWER:
+e.g
+groupBy("country")
+-If 90% = "US"
 
 Uneven key distribution
 One partition gets too much data
 
 SPARK UI:
-
 One task runs much longer
 Unequal input size
 
+Fix:
+Salting
+AQE skew join
 
-15. AWS design: near real-time telemetry (5M events/min)
+15. AWS design: Design a near real time telemetry ingestion platform (5M events/min)
 ANSWER:
 ARCHITECTURE:
 INGESTION:
-
-Kinesis (multiple shards)
+-Kinesis (multiple shards)
 
 PROCESSING:
-
-Databricks Structured Streaming
+-Databricks Structured Streaming
 
 STORAGE:
-
-S3 (Delta Lake)
+-S3 (Delta Lake)
 
 SERVING:
-
-Redshift / Gold layer
+-Redshift / Gold layer
 
 FEATURES:
-
 Replay → Kinesis retention
 Schema evolution → Delta Lake
 Monitoring → CloudWatch
@@ -422,29 +420,24 @@ Handle nullable fields
 
 
 17. What are common airflow production failures
+
 ANSWER:
 FAILURES:
-
 DAG dependency failures
-Retry exhaustion
-Scheduler overload
+Long running tasks,Retry exhaustion
+Scheduler overload/lag
+Backfill overload
 Resource issues
 
 SOLUTIONS:
-
 Proper retries
 SLA alerts
 Idempotent jobs
 Backfill strategy
 
+###################################################################################################################
 
-
-
-
-
-#####################################
-
- ///////// Infobeans- 07 May 2026
+ /////////////////////// Infobeans- 07 May 2026
 
 1. Find the top 3 employees with highest salary in each department
 
