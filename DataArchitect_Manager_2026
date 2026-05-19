@@ -1,6 +1,39 @@
 
 **  Year 2026 Interview Q&A **
 
+#####################################
+
+//////// Ascendion - Data engineer - 1st round -15 Mat
+
+Ascendion Interview questions-
+
+1. In databricks, there is delta table with 15 Tb data and daily incremental ingestion with heavy merge operation and BI queries are becoming slow every month. How would you optimize this kind of environment end to end
+2. ⁠What are the internal during a delta merge in databricks- step by step
+3. ⁠How does delta lake guarantee acid compliance diring concurrent merge
+4. ⁠Why does delta merge create many small files internally
+5. ⁠What exactly is stored inside a delta log table in databricks
+6. ⁠When not to use partioning
+7. ⁠In spark explain this execution flow
+df=spark. read.parquet(s3:/)
+df1=df.groupby(region)
+df2=df1.agg(sum("amount"))
+8. What is the difference between btw repartition and coalesce. What happens internally when df.repartition(200) is executed 
+9. ⁠Why coalesce function makes job slower
+10. ⁠How does AQE change the repartition behaviour internally 
+11. ⁠How you decide idle partition count in spark. How much partition count should we give to spark job. What factors will matter to decide the partition count.Per core how many partitions will be?
+12. ⁠A business critical query uses power bi started taking earlier 20 sec to now 18mins, the table having transactions 4 billion of rows, customer 120 million, product 14 million rows, tell troubleshooting strategy how would you do root cause analysis, optimisation, data modelling
+13. ⁠What is the difference between btw sort merge join and broadcast join
+14. ⁠How does skew happens internally during spark. How would it appear in spark UI
+15. ⁠Aws- Design a near real time telemetry ingestion platform using kinesis, databricks,s3,airflow and redshift. Req- 5 million events per minute, replay capability , schema evolution, monitoring,cost optimisation . Explain the architectural decisions.
+16. ⁠How would you handle schema drift in real time streaming
+17. ⁠What are the common airflow production failures 
+
+
+
+
+
+#####################################
+
  ///////// Infobeans- 07 May 2026
 
 1. Find the top 3 employees with highest salary in each department
