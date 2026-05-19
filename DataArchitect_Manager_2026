@@ -29,6 +29,416 @@ df2=df1.agg(sum("amount"))
 17. ⁠What are the common airflow production failures 
 
 
+Q1. In Databricks, there is a Delta table with 15 Tb data and daily incremental ingestion with heavy merge operation and BI queries are becoming slow every month. How would you optimize this kind of environment end to end
+ANSWER:
+
+Merge creates many small files → slow scans
+STORAGE OPTIMIZATION:
+
+Partition by low-cardinality column (like date)
+Avoid high cardinality partitions
+
+RUN OPTIMIZE + ZORDER:
+OPTIMIZE table_name ZORDER BY (customer_id, product_id);
+-Compacts small files into ~128MB–1GB
+-ZORDER improves pruning
+
+ENABLE AUTO OPTIMIZE:
+SET spark.databricks.delta.optimizeWrite = true;
+SET spark.databricks.delta.autoCompact = true;
+
+MERGE OPTIMIZATION:
+MERGE INTO target t
+USING source s
+ON t.id = s.id AND t.date = s.date
+
+SET:
+SET spark.databricks.delta.merge.repartitionBeforeWrite = true;
+
+QUERY OPT:
+
+Enable Photon
+Use caching:
+
+df.cache()
+
+* Use Incremental Reads (CDC pattern)
+e.g WHERE last_updated > last_run_time
+
+*Optimize Join side
+-Broadcast small dataset if possible
+e.g, 
+from pyspark.sql.functions import broadcast
+df_target.merge(broadcast(df_updates), "id")
+
+
+MAINTENANCE:
+OPTIMIZE table_name;
+VACUUM table_name RETAIN 168 HOURS;
+
+ARCHITECTURE:
+
+Bronze → Silver → Gold
+Pre-aggregated tables for BI
+
+
+Q2. What are the internal steps during a Delta MERGE in Databricks – step by step
+ANSWER:
+Internal Steps of MERGE:
+1. Read Target Snapshot
+    * Delta reads latest snapshot from _delta_log
+2. Read Source Data
+3. Join Source + Target
+    * Based on merge condition
+4. Classify Rows
+    * Matched → UPDATE/DELETE
+    * Not matched → INSERT
+5. Rewrite Files (NOT in-place update)
+    * New files created
+    * Old files marked for deletion
+6. Write New Data Files
+7. Delta Log Commit JSON log entries:
+    * add file
+    * remove file
+8. Optimistic Concurrency Check
+    * Ensures no conflicting writes happened
+
+✔️ Key: Delta never updates in-place, always copy-on-write
+
+
+Read source table
+Read target table
+Apply partition pruning
+Identify candidate files
+Perform join (Sort Merge Join)
+Apply merge conditions:
+
+MATCHED → UPDATE / DELETE
+NOT MATCHED → INSERT
+
+
+Rewrite affected files
+Write new parquet files
+Update delta log (_delta_log)
+Commit transaction
+
+sql code-->
+sqlMERGE INTO target_table AS target
+USING source_table AS source
+ON target.id = source.id
+WHEN MATCHED THEN
+  UPDATE SET *
+WHEN NOT MATCHED THEN
+  INSERT *
+
+Python-->
+from delta.tables import DeltaTable
+target_table = DeltaTable.forPath(spark, "/path/to/target")
+(target_table.alias("target")
+  .merge(
+    source_df.alias("source"),
+    "target.id = source.id")
+  .whenMatchedUpdateAll()
+  .whenNotMatchedInsertAll()
+  .execute())
+
+Q3. How does Delta Lake guarantee ACID compliance during concurrent merge
+ANSWER:
+Uses Optimistic Concurrency Control (OCC)
+STEPS:
+
+Read snapshot version
+Perform operations
+Before commit → check conflicts
+If conflict → retry
+
+FEATURES:
+
+Atomic commits
+Snapshot isolation
+Transaction log (_delta_log)
+
+ACID Mechanism------------>
+1. Atomicity
+Transaction commit is all-or-nothing
+Files added only after success
+
+2. Consistency
+Schema enforcement
+Constraints validation
+
+3. Isolation (Critical)
+Uses Optimistic Concurrency Control
+Steps:
+Read snapshot
+Perform write
+Before commit:
+Check if affected files changed
+If conflict:
+→ Retry transaction
+
+4. Durability
+Data persisted on cloud storage (S3/ADLS)
+
+Q4. Why does Delta merge create many small files internally
+ANSWER:
+
+Parallel writes by executors
+Rewrite only affected data
+Frequent small updates
+High shuffle parallelism
+
+FIX:
+OPTIMIZE table_name;
+
+
+5. What exactly is stored inside a delta log table in Databricks
+ANSWER:
+Stored in _delta_log folder:
+
+
+JSON files:
+
+Add file
+Remove file
+Schema
+Metadata
+
+
+
+Checkpoint parquet files
+
+
+EXAMPLE:
+{
+  "add": {
+    "path": "part-000.snappy.parquet",
+    "size": 12345
+  }
+}
+
+
+6. When not to use partitioning
+ANSWER:
+
+High cardinality column (user_id)
+Small tables
+No filtering in queries
+Causes too many small files
+
+
+7. In spark explain this execution flow
+df = spark.read.parquet("s3://bucket")
+df1 = df.groupby("region")
+df2 = df1.agg(sum("amount"))
+
+ANSWER:
+
+
+Logical Plan:
+
+Read → GroupBy → Aggregate
+
+
+
+Catalyst optimizer:
+
+Predicate pushdown
+Column pruning
+
+
+
+Physical Plan:
+
+Shuffle on region column
+
+
+
+Execution:
+
+Stage 1: Read data
+Stage 2: Shuffle + aggregation
+
+
+
+
+8. Difference between repartition and coalesce. What happens internally when df.repartition(200)
+ANSWER:
+REPARTITION:
+
+Full shuffle
+Even data distribution
+
+df.repartition(200)
+
+INTERNAL:
+
+Shuffle stage created
+Hash partitioning applied
+200 output partitions generated
+
+COALESCE:
+
+No shuffle (or minimal)
+Just merges partitions
+
+
+9. Why coalesce function makes job slower
+ANSWER:
+
+No proper rebalancing
+Creates skew
+Some partitions become large
+Long-running tasks (stragglers)
+
+
+10. How does AQE change the repartition behaviour internally
+ANSWER:
+ENABLE:
+SET spark.sql.adaptive.enabled = true;
+
+AQE FEATURES:
+
+Dynamic partition adjustment
+Coalesce shuffle partitions
+Skew join handling
+Switch join type (sort → broadcast)
+
+
+11. How you decide ideal partition count in spark
+ANSWER:
+RULE:
+
+2–4 partitions per core
+
+Example:
+
+100 cores → 200 to 400 partitions
+
+FACTORS:
+
+Data size
+Cluster cores
+Shuffle size
+Skew
+
+
+12. Power BI query slow (20 sec → 18 mins), 4B rows
+ANSWER:
+STEP 1: CHECK PLAN
+
+Full scans?
+Bad join type?
+Skew?
+
+STEP 2: FIX DATA MODEL
+
+Use star schema
+Dimension tables
+Aggregated tables
+
+OPTIMIZE:
+OPTIMIZE transactions ZORDER BY (customer_id);
+
+PARTITION:
+
+By date
+
+CREATE GOLD TABLES:
+
+Pre-aggregated datasets
+
+
+13. Difference between sort merge join and broadcast join
+ANSWER:
+SORT MERGE JOIN:
+
+Used for large tables
+Requires shuffle
+Slower
+
+BROADCAST JOIN:
+
+Small table copied to all nodes
+No shuffle on large table
+Faster
+
+EXAMPLE:
+from pyspark.sql.functions import broadcast
+df.join(broadcast(df_small), "id")
+
+
+14. How does skew happen internally during spark
+ANSWER:
+
+Uneven key distribution
+One partition gets too much data
+
+SPARK UI:
+
+One task runs much longer
+Unequal input size
+
+
+15. AWS design: near real-time telemetry (5M events/min)
+ANSWER:
+ARCHITECTURE:
+INGESTION:
+
+Kinesis (multiple shards)
+
+PROCESSING:
+
+Databricks Structured Streaming
+
+STORAGE:
+
+S3 (Delta Lake)
+
+SERVING:
+
+Redshift / Gold layer
+
+FEATURES:
+
+Replay → Kinesis retention
+Schema evolution → Delta Lake
+Monitoring → CloudWatch
+Cost → Spot instances + compaction
+
+
+16. How would you handle schema drift in real time streaming
+ANSWER:
+ENABLE:
+.option("mergeSchema", "true")
+
+SET:
+spark.conf.set("spark.databricks.delta.schema.autoMerge.enabled", "true")
+
+APPROACH:
+
+Add new columns dynamically
+Handle nullable fields
+
+
+17. What are common airflow production failures
+ANSWER:
+FAILURES:
+
+DAG dependency failures
+Retry exhaustion
+Scheduler overload
+Resource issues
+
+SOLUTIONS:
+
+Proper retries
+SLA alerts
+Idempotent jobs
+Backfill strategy
+
+
+
 
 
 
