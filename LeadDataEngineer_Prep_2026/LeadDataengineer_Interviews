@@ -29,7 +29,7 @@ user varchar not null
 incident_date datetime not null
  
  
-For the table tbl_incidents, please print the user with the second highest number of incidents on the 02/01/2025. 
+Find the user with the second highest number of incidents on the 02/01/2025. 
 
 Sol:
 
