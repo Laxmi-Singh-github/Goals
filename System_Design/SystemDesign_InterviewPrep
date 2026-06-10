@@ -1,8 +1,28 @@
 
-/////////////// TESCO
+//////////////////////// TESCO
+
+Q. Technical Round –
 
 
+* A real-time sample case study will be shared for coding. The expectation is to understand the scenario, analyze the requirements, and build a working solution.
+* For design, the focus is on understanding the problem statement, asking the right questions, and creating a high-level architecture. This includes decisions such as where the data should be stored and how the system should be structured.
+* For integration, you will need to think about how the front end and back end connect and interact effectively.
+* Other important aspects include diving deeper into reliability, security, and modularity, and exploring these areas through thoughtful discussion and questions.
+* During follow-up discussions, be prepared to:
+    * Explain why a particular approach was chosen.
+    * Justify design decisions.
+    * Discuss trade-offs, pros, and cons.
+    * Highlight design principles and best practices used.
+    * Challenge product managers or stakeholders constructively when needed.
+    * Work collaboratively while keeping cost-effectiveness in mind.
+* In general, the expected mindset is to:
+    * Stay honest and communicate openly.
+    * Ask clarifying questions.
+    * Think broadly and at scale.
+    * Consider how large-scale platforms such as Twitter/X or Facebook are designed and built at a high level.
 
+
+Ans.
 1. Problem understanding
 2. System Design (HLD + LLD)
 3. Data Engineering architecture
