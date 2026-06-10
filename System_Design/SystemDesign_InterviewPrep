@@ -1,1 +1,562 @@
 
+/////////////// TESCO
+
+
+
+1. Problem understanding
+2. System Design (HLD + LLD)
+3. Data Engineering architecture
+4. Integration thinking
+5. Reliability
+6. Security
+7. Scalability
+8. Cost optimization
+9. Tradeoff discussions
+10. Coding implementation
+
+For a Senior Data Engineer, expect a case study like:
+
+“Build a platform to ingest sales data from 10,000 stores globally and provide near real-time analytics.”
+
+⸻
+
+1. First Questions You Should Ask (Very Important)
+
+Before designing anything:
+
+Functional Requirements
+
+* What data source?
+* Batch or streaming?
+* Data volume?
+* Expected latency?
+* Reporting requirements?
+* Historical data retention?
+
+Non Functional Requirements
+
+* Availability requirement?
+* SLA?
+* Security requirements?
+* Budget constraints?
+* Expected growth?
+
+Interviewers love these questions.
+
+⸻
+
+Case Study Example
+
+Design Tesco Sales Analytics Platform
+
+Stores → Kafka → Databricks → Delta Lake → Power BI
+
+⸻
+
+HLD Answer
+
+Store Systems
+      |
+      V
+Kafka/Event Hub
+      |
+      V
+Bronze Layer
+      |
+      V
+Silver Layer
+      |
+      V
+Gold Layer
+      |
+      V
+Power BI/Tableau
+
+⸻
+
+Why Bronze Silver Gold?
+
+Bronze
+
+Raw Data
+
+{
+ "store_id":100,
+ "amount":200
+}
+
+No transformations.
+
+⸻
+
+Silver
+
+Cleaned Data
+
+select
+ store_id,
+ cast(amount as decimal)
+from bronze
+
+⸻
+
+Gold
+
+Business Layer
+
+sales_by_store
+sales_by_product
+sales_by_region
+
+Optimized for reporting.
+
+⸻
+
+Design Questions
+
+Why Kafka?
+
+Answer:
+
+* High throughput
+* Fault tolerant
+* Replay capability
+* Scales horizontally
+
+⸻
+
+Why Delta Lake?
+
+Answer:
+
+* ACID transactions
+* Time travel
+* Schema evolution
+* Fast MERGE
+* Reliability
+
+⸻
+
+Internal Delta Merge
+
+Interview Favorite
+
+MERGE INTO target t
+USING source s
+ON t.id=s.id
+WHEN MATCHED UPDATE
+WHEN NOT MATCHED INSERT
+
+Internally:
+
+1. Reads matching files
+2. Creates new parquet files
+3. Updates delta log
+4. Commits transaction
+5. Old files marked obsolete
+
+No in-place updates.
+
+⸻
+
+Reliability Questions
+
+What if Kafka goes down?
+
+Answer:
+
+* Multi-broker setup
+* Replication factor 3
+* Automatic failover
+
+⸻
+
+What if Databricks job fails?
+
+Answer:
+
+* Retry mechanism
+* Checkpointing
+* Alerting
+* Job orchestration
+
+⸻
+
+Recover Lost Data
+
+Answer:
+
+Delta Time Travel
+
+SELECT *
+FROM sales
+VERSION AS OF 100
+
+or
+
+RESTORE TABLE sales
+TO VERSION AS OF 100
+
+⸻
+
+Security Questions
+
+How will you secure PII?
+
+Answer:
+
+* Unity Catalog
+* Column level security
+* Row level security
+* Data masking
+* Encryption
+
+Example:
+
+CREATE MASKING POLICY
+
+⸻
+
+Encryption?
+
+Answer:
+
+At Rest
+
+AES 256
+
+In Transit
+
+TLS/HTTPS
+
+⸻
+
+Data Partitioning
+
+Why Partition?
+
+Avoid scanning whole table.
+
+⸻
+
+Example
+
+Without Partition
+
+1 TB scanned
+
+With Partition
+
+WHERE date='2026-01-01'
+
+Only required partition scanned.
+
+⸻
+
+Bad Partition
+
+customer_id
+
+Millions of folders.
+
+⸻
+
+Good Partition
+
+date
+year/month
+region
+
+⸻
+
+Minimize Data Shuffling
+
+Interview Favorite
+
+Use Repartition
+
+df.repartition("store_id")
+
+⸻
+
+Broadcast Join
+
+from pyspark.sql.functions import broadcast
+fact.join(
+ broadcast(dim),
+ "id"
+)
+
+Small table sent to executors.
+
+No shuffle.
+
+⸻
+
+Bucketing
+
+CLUSTER BY customer_id
+
+⸻
+
+Large Delta Table (15 TB)
+
+Very Common Question
+
+Symptoms
+
+* Slow BI
+* Slow merge
+
+⸻
+
+Solutions
+
+Optimize
+
+OPTIMIZE sales
+
+⸻
+
+Z-Order
+
+OPTIMIZE sales
+ZORDER BY(customer_id)
+
+⸻
+
+Partition
+
+date
+region
+
+⸻
+
+Photon
+
+Enable Photon Engine.
+
+⸻
+
+Materialized Tables
+
+Gold layer aggregations.
+
+⸻
+
+Cost Optimization
+
+Interview Favorite
+
+Auto Scaling
+
+Scale up only when needed
+
+⸻
+
+Spot Instances
+
+70-80% cheaper.
+
+⸻
+
+Cluster Policies
+
+Prevent oversized clusters.
+
+⸻
+
+Auto Termination
+
+15 mins idle
+
+Shutdown cluster.
+
+⸻
+
+External Data Ingestion
+
+Methods
+
+API
+
+requests.get()
+
+⸻
+
+Kafka
+
+Streaming
+
+⸻
+
+SFTP
+
+Files
+
+⸻
+
+Database
+
+JDBC
+
+spark.read.jdbc()
+
+⸻
+
+Mounting
+
+Question often asked.
+
+dbutils.fs.mount(
+ source="abfss://...",
+ mount_point="/mnt/raw"
+)
+
+Purpose:
+
+* Easy access
+* Reusable paths
+
+Nowadays Unity Catalog External Locations are preferred.
+
+⸻
+
+Integration Questions
+
+Frontend asks for data
+
+Answer:
+
+Frontend
+   |
+API Layer
+   |
+Databricks SQL
+   |
+Delta Tables
+
+Never allow frontend direct database access.
+
+⸻
+
+Monitoring
+
+Tools
+
+Databricks Monitoring
+Azure Monitor
+CloudWatch
+Prometheus
+Grafana
+
+Track:
+
+* Failed jobs
+* Latency
+* Throughput
+* CPU
+* Memory
+
+⸻
+
+Coding Questions
+
+Remove Duplicates
+
+df.dropDuplicates(["id"])
+
+⸻
+
+Window Function
+
+Latest Record
+
+from pyspark.sql.window import Window
+from pyspark.sql.functions import row_number
+w=Window.partitionBy("id").orderBy(col("ts").desc())
+df.withColumn(
+ "rn",
+ row_number().over(w)
+).filter("rn=1")
+
+⸻
+
+Incremental Load
+
+max_id=target.agg(
+ max("id")
+).collect()[0][0]
+source.filter(
+ col("id")>max_id
+)
+
+⸻
+
+Follow-Up Tradeoff Questions
+
+Kafka vs Event Hub
+
+Kafka:
+
+* More control
+
+Event Hub:
+
+* Managed service
+
+⸻
+
+Batch vs Streaming
+
+Batch:
+
+* Cheap
+
+Streaming:
+
+* Low latency
+
+⸻
+
+Delta vs Parquet
+
+Parquet:
+
+* Storage only
+
+Delta:
+
+* ACID + Time Travel + Merge
+
+⸻
+
+Star vs Snowflake
+
+Star:
+
+* Faster BI
+
+Snowflake:
+
+* Less redundancy
+
+⸻
+
+Final Interview Closing Answer
+
+Whenever they ask:
+
+“Why did you choose this architecture?”
+
+Use this framework:
+
+1. Scalability
+2. Reliability
+3. Security
+4. Cost
+5. Maintainability
+
+Example:
+
+“I chose Kafka + Delta Lake because it provides scalable ingestion, reliable processing through ACID transactions, secure governance via Unity Catalog, lower operational cost through optimized storage, and easier maintenance through medallion architecture.”
