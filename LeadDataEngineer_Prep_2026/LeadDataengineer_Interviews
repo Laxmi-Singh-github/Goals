@@ -1,5 +1,29 @@
 
 
+Screening round-->
+
+You have a list of numbers [2, 3, 6, 12, 18]. Without using built‑in functions like min() or sorted(), write Python code that finds and prints the second smallest value in the list. 
+
+There is a table tbl_incidents that logs ... by Pandey, Indranil
+Pandey, Indranil
+5:30 PM
+
+There is a table tbl_incidents that logs every incident id against a user. 
+
+tbl_incidents 
+
+id int (PK) 
+
+user varchar not null 
+
+incident_date datetime not null 
+
+ 
+
+For the table tbl_incidents, please print the user with the second highest number of incidents on the 02/01/2025. 
+
+////////////////
+
 **  Year 2026 Interview Q&A **
 
 #####################################
