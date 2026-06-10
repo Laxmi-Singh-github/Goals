@@ -2,25 +2,64 @@
 
 Screening round-->
 
-You have a list of numbers [2, 3, 6, 12, 18]. Without using built‑in functions like min() or sorted(), write Python code that finds and prints the second smallest value in the list. 
+Q. Python code to :
+You have a list of numbers [2, 3, 6, 12, 18]. 
+Without using built‑in functions like min() or sorted(), 
+write Python code that finds and prints the second smallest value in the list. 
 
-There is a table tbl_incidents that logs ... by Pandey, Indranil
-Pandey, Indranil
-5:30 PM
+Sol:
+nums = [2, 3, 6, 12, 18]
+smallest = float('inf')
+second_smallest = float('inf')
 
+for num in nums:
+    if num < smallest:
+        second_smallest = smallest
+        smallest = num
+    elif smallest < num < second_smallest:
+        second_smallest = num
+print(second_smallest)
+
+Q. Write a sql?
 There is a table tbl_incidents that logs every incident id against a user. 
 
-tbl_incidents 
-
-id int (PK) 
-
-user varchar not null 
-
-incident_date datetime not null 
-
+tbl_incidents:
+id int (PK)
+user varchar not null
+incident_date datetime not null
  
-
+ 
 For the table tbl_incidents, please print the user with the second highest number of incidents on the 02/01/2025. 
+
+Sol:
+
+SELECT user
+FROM (
+    SELECT 
+        user,
+        COUNT(*) AS incident_count,
+        DENSE_RANK() OVER (ORDER BY COUNT(*) DESC) AS rank_num
+    FROM tbl_incidents
+    WHERE DATE(incident_date) = '2025-01-02'
+    GROUP BY user
+) t
+WHERE rank_num = 2;
+
+(or)
+
+WITH incident_counts AS (
+    SELECT 
+        user,
+        COUNT(*) AS incident_count,
+        DENSE_RANK() OVER (ORDER BY COUNT(*) DESC) AS rank_num
+    FROM tbl_incidents
+    WHERE DATE(incident_date) = '2025-01-02'
+    GROUP BY user
+)
+
+SELECT user
+FROM incident_counts
+WHERE rank_num = 2;
 
 ////////////////
 
