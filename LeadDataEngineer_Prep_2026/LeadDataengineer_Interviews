@@ -1,4 +1,9 @@
+**  Year 2026 Interview Q&A **
 
+#####################################
+
+
+/////////////////////////// TESCO L1///////////////
 
 Screening round-->
 
@@ -61,11 +66,182 @@ SELECT user
 FROM incident_counts
 WHERE rank_num = 2;
 
-////////////////
+//////////////// Tiger Analytics
 
-**  Year 2026 Interview Q&A **
+Q. Write Python code to sort numbers (without built-in functions).
+s=[4,3,2,7,8]
 
-#####################################
+Sol:
+s.sort()
+
+(or)
+
+for i in range(len(s)):
+for j in range(0,len(s)-i):
+if s[j]>s[j+1]:
+s[j],s[j+1]=s[j+1],s[j]
+print(s)
+
+
+s=[4,3,2,7,8]
+
+
+Q. What is the output of a Python code snippet
+
+B = [6, 7, 4, 2]
+F = B
+F[1] = 3
+print("F:", F)
+print("B:", B)
+
+Sol:
+F: [6, 3, 4, 2]
+B: [6, 3, 4, 2]
+The output is the same because both F and B refer to the same list in memory, so any change through one affects the other/
+Same object (no copy)
+
+Q.SQL-
+Given two tables Bill and Sales, write an SQL query to find the most sold product (by quantity) between two dates using join and aggregation.
+
+Sol:
+SELECT
+    s.product_id,
+    SUM(s.quantity) AS total_quantity
+FROM Sales s
+JOIN Bill b 
+    ON s.bill_id = b.bill_id
+WHERE b.date BETWEEN '2024-01-01' AND '2024-01-31'
+GROUP BY s.product_id
+ORDER BY total_quantity DESC
+LIMIT 1;
+
+
+Q. Write a Spark program:
+Read one DataFrame from JDBC
+Read another from a file
+Join both
+Perform aggregation
+Write output to JDBC
+How to perform aggregation (sum, group by)?
+Sol:
+### 🔹 Step 1: Create Spark session
+
+```python
+from pyspark.sql import SparkSession
+
+spark = SparkSession.builder \
+    .appName("JoinAggregationExample") \
+    .getOrCreate()
+```
+# ✅ Step 2: Read DataFrame from JDBC
+
+```python
+jdbc_df = spark.read.format("jdbc") \
+    .option("url", "jdbc:mysql://localhost:3306/db_name") \
+    .option("dbtable", "table1") \
+    .option("user", "username") \
+    .option("password", "password") \
+    .option("driver", "com.mysql.cj.jdbc.Driver") \
+    .load()
+```
+# ✅ Step 3: Read DataFrame from file (CSV example)
+
+```python
+file_df = spark.read.format("csv") \
+    .option("header", "true") \
+    .option("inferSchema", "true") \
+    .load("/path/to/file.csv")
+```
+# ✅ Step 4: Join both DataFrames
+
+Assume both have a common column: `id`
+
+```python
+joined_df = jdbc_df.join(file_df, on="id", how="inner")
+```
+# ✅ Step 5: Aggregation (Group By + Sum)
+
+### 🔹 Example: Sum of salary per department
+
+```python
+from pyspark.sql.functions import sum
+
+agg_df = joined_df.groupBy("department") \
+    .agg(sum("salary").alias("total_salary"))
+```
+
+***
+
+### ✅ More Aggregation Examples
+
+```python
+from pyspark.sql.functions import count, avg
+
+agg_df = joined_df.groupBy("department") \
+    .agg(
+        sum("salary").alias("total_salary"),
+        avg("salary").alias("avg_salary"),
+        count("*").alias("employee_count")
+    )
+```
+# ✅ Step 6: Write output to JDBC
+
+```python
+agg_df.write.format("jdbc") \
+    .option("url", "jdbc:mysql://localhost:3306/db_name") \
+    .option("dbtable", "output_table") \
+    .option("user", "username") \
+    .option("password", "password") \
+    .option("driver", "com.mysql.cj.jdbc.Driver") \
+    .mode("overwrite") \
+    .save()
+```
+
+Q2. Write a PySpark program to:
+
+Read one DataFrame from a JDBC source
+Read another DataFrame from a file (CSV)
+Join both DataFrames using column1
+Save the result into a JDBC table
+
+Sol:
+from pyspark.sql import SparkSession
+
+# Step 1: Create Spark session
+spark = SparkSession.builder \
+    .appName("JDBC Join Example") \
+    .getOrCreate()
+
+# Step 2: Read DataFrame from JDBC
+jdbc_df = spark.read.format("jdbc") \
+    .option("url", "jdbc:mysql://localhost:3306/test_db") \
+    .option("dbtable", "table1") \
+    .option("user", "username") \
+    .option("password", "password") \
+    .option("driver", "com.mysql.cj.jdbc.Driver") \
+    .load()
+
+# Step 3: Read DataFrame from file (CSV)
+file_df = spark.read.format("csv") \
+    .option("header", "true") \
+    .option("inferSchema", "true") \
+    .load("/path/to/file.csv")
+
+# Step 4: Join both DataFrames on 'column1'
+joined_df = jdbc_df.join(file_df, on="column1", how="inner")
+
+# Step 5: Write result to JDBC table
+joined_df.write.format("jdbc") \
+    .option("url", "jdbc:mysql://localhost:3306/test_db") \
+    .option("dbtable", "output_table") \
+    .option("user", "username") \
+    .option("password", "password") \
+    .option("driver", "com.mysql.cj.jdbc.Driver") \
+    .mode("overwrite") \
+    .save()
+
+
+
 
 //////// Ascendion - Data engineer - 1st round -15 Mat
 
