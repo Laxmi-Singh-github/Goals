@@ -1,5 +1,334 @@
 
-//////////////////////// TESCO
+
+//////////////////////////////////////////////////// 
+
+TESCO L2----------->
+
+Q.Design an end-to-end data engineering pipeline to measure the impact of a 4-week promotion
+on a coffee product for Tesco Clubcard customers, showing purchase counts across different customer groups((premium, value, etc.)
+Also redesign the same pipeline considering clickstream (real-time) data instead of batch data
+
+-What is transaction vs reference data here?
+-How will you design the pipeline architecture?
+-What will you consider for production readiness?
+-Which file format will you use and why?
+-When to use Medallion architecture?
+
+
+# ✅ ✅ **Case Study Answer**
+# 🟦 1. Problem Statement 
+We need to:
+* Analyze a **promotion on a coffee product**
+* Measure **impact on purchases**
+* Segment by **customer groups (premium, value, etc.)**
+* Support:
+  * ✅ Batch (transaction data)
+  * ✅ Streaming (clickstream data)
+
+***
+# 🟦 2. Data Modeling (What & Why)
+### ✅ Transaction Data (Fact Table)
+Represents business events (purchases)
+
+```sql
+transactions (
+  order_id STRING,
+  user_id STRING,
+  product_id STRING,
+  quantity INT,
+  amount DOUBLE,
+  timestamp TIMESTAMP,
+  channel STRING
+)
+```
+👉 Why?
+* Captures **real business activity**
+* Used for KPIs like revenue, quantity
+
+***
+
+### ✅ Reference Data (Dimension Tables)
+
+```sql
+customers (
+  user_id STRING,
+  customer_group STRING
+)
+
+products (
+  product_id STRING,
+  product_name STRING,
+  category STRING
+)
+
+promotions (
+  product_id STRING,
+  start_date DATE,
+  end_date DATE
+)
+```
+👉 Why?
+* Adds **business meaning**
+* Enables segmentation
+***
+
+# 🟦 3. Batch Pipeline Architecture (End-to-End)
+***
+## ✅ Step 1: Ingestion
+**Approach**
+* Source DB (Teradata / OLTP)
+* Tools:
+  * **AWS DMS / Glue / APIs**
+```python
+# Example: Glue ingestion (simplified)
+df = spark.read.format("jdbc") \
+    .option("url", "jdbc:mysql://host/db") \
+    .option("dbtable", "transactions") \
+    .load()
+df.write.mode("append").parquet("s3://datalake/bronze/transactions/")
+```
+👉 Why?
+
+* JDBC ingestion ensures **incremental data capture**
+* S3 = scalable, cost-efficient
+***
+##################### ✅ Step 2: Medallion Architecture
+
+### 🔹 Bronze (Raw Layer)
+* Store raw data as-is
+👉 Why:
+* Enables **reprocessing**
+* Audit / lineage
+***
+
+### 🔹 Silver (Clean Layer)
+```python
+df_clean = df.dropDuplicates(["order_id"]) \
+             .filter("user_id IS NOT NULL AND product_id IS NOT NULL")
+
+df_clean.write.mode("overwrite").parquet("s3://datalake/silver/")
+```
+👉 Why:
+* Improves **data quality**
+* Removes duplicates/nulls
+
+***
+### 🔹 Gold (Business Layer)
+
+```sql
+SELECT
+  c.customer_group,
+  SUM(t.quantity) AS total_quantity,
+  COUNT(DISTINCT t.order_id) AS orders
+FROM transactions t
+JOIN customers c ON t.user_id = c.user_id
+JOIN promotions p ON t.product_id = p.product_id
+WHERE t.timestamp BETWEEN p.start_date AND p.end_date
+GROUP BY c.customer_group
+ORDER BY total_quantity DESC;
+```
+👉 Why:
+* Aggregated, **ready for business use**
+***
+
+#################### ✅ Step 3: Storage
+👉 Use:
+* **Parquet format**
+
+Why?
+
+* Columnar → faster queries
+* Compression → less storage
+* Schema support
+
+***
+
+##################### ✅ Step 4: Serving Layer
+
+👉 Tools:
+* **Redshift / Snowflake / Athena**
+```sql
+CREATE TABLE gold_sales AS
+SELECT * FROM s3_gold_data;
+```
+***
+##################### ✅ Step 5: Visualization
+👉 Tools:
+* Power BI / Tableau
+KPIs:
+
+* Purchases per customer group
+* Promotion impact %
+* Revenue uplift
+***
+# 🟦 4. Production Readiness (Very Important)
+
+✅ Incremental processing (CDC)
+
+```sql
+WHERE timestamp > last_run_time
+```
+
+✅ Partitioning
+
+```python
+df.write.partitionBy("date").parquet("s3://...")
+```
+
+✅ Data Quality Checks
+
+* Null checks
+* Schema validation
+
+✅ Monitoring
+
+* CloudWatch / Airflow alerts
+
+✅ CI/CD
+
+* Deploy pipelines with version control
+
+👉 Why?
+Ensures:
+
+* Reliability
+* Scalability
+* Maintainability
+
+***
+
+########################## 🟦 5. Streaming Architecture (Clickstream Case)
+
+***
+
+## ✅ Step 1: Event Ingestion
+
+👉 Tools:
+
+* Kafka / AWS MSK / Kinesis
+
+Event Example:
+
+```json
+{
+  "user_id": "u1",
+  "event": "product_click",
+  "product_id": "coffee1",
+  "timestamp": "2026-06-12T10:00:00"
+}
+```
+
+***
+
+## ✅ Step 2: Stream Processing
+
+```python
+stream_df = spark.readStream \
+    .format("kafka") \
+    .option("subscribe", "clickstream") \
+    .load()
+
+parsed = stream_df.selectExpr("CAST(value AS STRING)") \
+    .select(from_json("value", schema).alias("data"))
+
+aggregated = parsed.groupBy("customer_group").count()
+```
+
+👉 Why:
+
+* Real-time insights
+* Low latency
+
+***
+
+## ✅ Step 3: Sink
+
+```python
+aggregated.writeStream \
+    .format("parquet") \
+    .option("path", "s3://gold/") \
+    .start()
+```
+
+***
+
+# ############################🟦 6. File Format Recommendation
+
+### ✅ JSON (Ingestion)
+
+* Flexible schema (best for APIs/events)
+
+### ✅ Parquet (Storage)
+
+* Columnar → faster analytics
+* Compression → cost saving
+
+👉 Best practice:
+
+> JSON → Bronze → Convert to Parquet → Silver/Gold
+
+***
+
+########################## 🟦 7. Medallion Architecture (When & Why)
+
+✅ Use when:
+
+* Large-scale data
+* Need reprocessing
+* Complex transformations
+
+✅ Benefits:
+
+* Layered design
+* Easy debugging
+* Data quality separation
+
+***
+
+############################# 🟦 8. Kafka Consumer Group (Important Follow-up)
+
+👉 Definition:
+* Group of consumers reading from same topic
+👉 Example:
+* Topic: `orders`
+* Group: `fraud-service`
+```text
+Partition 1 → Consumer 1  
+Partition 2 → Consumer 2
+```
+👉 Why:
+
+* Parallel processing
+* Scalability
+* Fault tolerance
+
+***
+
+############################## 🟦 9. Advanced (Senior-Level Insights)
+
+✅ A/B Testing
+* Compare promo vs non-promo users
+✅ Conversion Funnel
+* View → Click → Purchase
+✅ Late arriving data handling
+✅ Schema evolution (Avro + Schema registry)
+***
+# ✅ ✅ **Final Closing Statement**
+
+“This solution is scalable, supports both batch and streaming use cases, leverages medallion architecture for data quality, and ensures real-time and historical analytics for measuring business impact.”
+
+***
+
+# 🔥 Why This Answer is Strong
+
+✔ Covers **end-to-end architecture**  
+✔ Explains **why each decision is made**  
+✔ Includes **code + SQL + Spark**  
+✔ Handles **batch + streaming**  
+✔ Shows **production maturity**
+
+
+//////////////////////// TESCO Prep Guidance
 
 Q. Technical Round –
 
@@ -38,14 +367,12 @@ For a Senior Data Engineer, expect a case study like:
 
 “Build a platform to ingest sales data from 10,000 stores globally and provide near real-time analytics.”
 
-⸻
+Ans.
 
 1. First Questions You Should Ask (Very Important)
-
 Before designing anything:
 
 Functional Requirements
-
 * What data source?
 * Batch or streaming?
 * Data volume?
@@ -54,24 +381,15 @@ Functional Requirements
 * Historical data retention?
 
 Non Functional Requirements
-
 * Availability requirement?
 * SLA?
 * Security requirements?
 * Budget constraints?
 * Expected growth?
 
-Interviewers love these questions.
-
-⸻
-
 Case Study Example
-
 Design Tesco Sales Analytics Platform
-
 Stores → Kafka → Databricks → Delta Lake → Power BI
-
-⸻
 
 HLD Answer
 
@@ -92,13 +410,10 @@ Gold Layer
       V
 Power BI/Tableau
 
-⸻
 
-Why Bronze Silver Gold?
+1. Why Bronze Silver Gold?
 
-Bronze
-
-Raw Data
+Bronze:Raw Data
 
 {
  "store_id":100,
@@ -107,22 +422,14 @@ Raw Data
 
 No transformations.
 
-⸻
-
-Silver
-
-Cleaned Data
+Silver:Cleaned Data
 
 select
  store_id,
  cast(amount as decimal)
 from bronze
 
-⸻
-
-Gold
-
-Business Layer
+Gold:Business Layer
 
 sales_by_store
 sales_by_product
@@ -130,37 +437,24 @@ sales_by_region
 
 Optimized for reporting.
 
-⸻
 
-Design Questions
-
-Why Kafka?
-
+2.Why Kafka?
 Answer:
-
 * High throughput
 * Fault tolerant
 * Replay capability
 * Scales horizontally
 
-⸻
-
-Why Delta Lake?
-
+3.Why Delta Lake?
 Answer:
-
 * ACID transactions
 * Time travel
 * Schema evolution
 * Fast MERGE
 * Reliability
 
-⸻
-
-Internal Delta Merge
-
-Interview Favorite
-
+4.Internal Delta Merge
+Ans.
 MERGE INTO target t
 USING source s
 ON t.id=s.id
@@ -168,286 +462,141 @@ WHEN MATCHED UPDATE
 WHEN NOT MATCHED INSERT
 
 Internally:
-
 1. Reads matching files
 2. Creates new parquet files
 3. Updates delta log
 4. Commits transaction
 5. Old files marked obsolete
-
 No in-place updates.
 
-⸻
-
-Reliability Questions
-
-What if Kafka goes down?
-
+5.What if Kafka goes down?
 Answer:
-
 * Multi-broker setup
 * Replication factor 3
 * Automatic failover
 
-⸻
-
-What if Databricks job fails?
-
+6.What if Databricks job fails?
 Answer:
-
 * Retry mechanism
 * Checkpointing
 * Alerting
 * Job orchestration
 
-⸻
-
-Recover Lost Data
-
+7.Recover Lost Data
 Answer:
-
 Delta Time Travel
-
 SELECT *
 FROM sales
 VERSION AS OF 100
-
 or
-
 RESTORE TABLE sales
 TO VERSION AS OF 100
 
-⸻
-
-Security Questions
-
-How will you secure PII?
-
+8.How will you secure PII?
 Answer:
-
 * Unity Catalog
 * Column level security
 * Row level security
 * Data masking
 * Encryption
-
 Example:
-
 CREATE MASKING POLICY
 
-⸻
-
-Encryption?
-
+9.Encryption?
 Answer:
-
-At Rest
-
+At Rest-
 AES 256
-
 In Transit
-
 TLS/HTTPS
 
-⸻
-
-Data Partitioning
-
+10.Data Partitioning
 Why Partition?
-
 Avoid scanning whole table.
-
-⸻
-
-Example
-
-Without Partition
-
-1 TB scanned
-
-With Partition
-
+Example-
+Without Partition-1 TB scanned
+With Partition-
 WHERE date='2026-01-01'
-
 Only required partition scanned.
 
-⸻
-
-Bad Partition
-
-customer_id
-
+Bad Partition:customer_id
 Millions of folders.
 
-⸻
-
-Good Partition
-
+Good Partition:
 date
 year/month
 region
 
-⸻
-
-Minimize Data Shuffling
-
-Interview Favorite
-
-Use Repartition
-
-df.repartition("store_id")
-
-⸻
-
-Broadcast Join
+11.Broadcast Join
 
 from pyspark.sql.functions import broadcast
 fact.join(
  broadcast(dim),
  "id"
 )
-
 Small table sent to executors.
-
 No shuffle.
 
-⸻
-
 Bucketing
-
 CLUSTER BY customer_id
 
-⸻
-
-Large Delta Table (15 TB)
-
-Very Common Question
-
+12.Large Delta Table (15 TB)
 Symptoms
-
 * Slow BI
 * Slow merge
 
-⸻
-
-Solutions
-
+Solutions:
 Optimize
-
 OPTIMIZE sales
 
-⸻
-
 Z-Order
-
 OPTIMIZE sales
 ZORDER BY(customer_id)
 
-⸻
-
 Partition
-
 date
 region
 
-⸻
-
-Photon
-
-Enable Photon Engine.
-
-⸻
+Photon-Enable Photon Engine.
 
 Materialized Tables
-
 Gold layer aggregations.
 
-⸻
-
-Cost Optimization
-
-Interview Favorite
-
+12.Cost Optimization
 Auto Scaling
-
 Scale up only when needed
 
-⸻
-
 Spot Instances
-
 70-80% cheaper.
 
-⸻
+Cluster Policies-Prevent oversized clusters.
 
-Cluster Policies
+Auto Termination-15 mins idle-Shutdown cluster.
 
-Prevent oversized clusters.
-
-⸻
-
-Auto Termination
-
-15 mins idle
-
-Shutdown cluster.
-
-⸻
-
-External Data Ingestion
-
-Methods
-
+13.External Data Ingestion
+Methods:
 API
-
 requests.get()
 
-⸻
+Kafka-Streaming
 
-Kafka
+SFTP-Files
 
-Streaming
+Database-JDBC-spark.read.jdbc()
 
-⸻
-
-SFTP
-
-Files
-
-⸻
-
-Database
-
-JDBC
-
-spark.read.jdbc()
-
-⸻
-
-Mounting
-
-Question often asked.
-
+Mounting-
 dbutils.fs.mount(
  source="abfss://...",
  mount_point="/mnt/raw"
 )
-
 Purpose:
-
 * Easy access
 * Reusable paths
-
 Nowadays Unity Catalog External Locations are preferred.
 
 ⸻
 
-Integration Questions
-
-Frontend asks for data
-
+13.Frontend asks for data
 Answer:
-
 Frontend
    |
 API Layer
@@ -458,40 +607,24 @@ Delta Tables
 
 Never allow frontend direct database access.
 
-⸻
 
-Monitoring
-
-Tools
-
+14.Monitoring Tools:
 Databricks Monitoring
 Azure Monitor
 CloudWatch
 Prometheus
 Grafana
-
 Track:
-
 * Failed jobs
 * Latency
 * Throughput
 * CPU
 * Memory
 
-⸻
-
-Coding Questions
-
-Remove Duplicates
-
+15.Remove Duplicates:
 df.dropDuplicates(["id"])
 
-⸻
-
-Window Function
-
-Latest Record
-
+Latest Record:
 from pyspark.sql.window import Window
 from pyspark.sql.functions import row_number
 w=Window.partitionBy("id").orderBy(col("ts").desc())
@@ -500,9 +633,7 @@ df.withColumn(
  row_number().over(w)
 ).filter("rn=1")
 
-⸻
-
-Incremental Load
+16.Incremental Load
 
 max_id=target.agg(
  max("id")
@@ -511,72 +642,39 @@ source.filter(
  col("id")>max_id
 )
 
-⸻
-
-Follow-Up Tradeoff Questions
-
+17.Follow-Up Tradeoff Questions
 Kafka vs Event Hub
-
 Kafka:
-
 * More control
-
 Event Hub:
-
 * Managed service
 
-⸻
-
 Batch vs Streaming
-
 Batch:
-
 * Cheap
-
 Streaming:
-
 * Low latency
 
-⸻
 
-Delta vs Parquet
-
+18.Delta vs Parquet
 Parquet:
-
 * Storage only
 
 Delta:
-
 * ACID + Time Travel + Merge
 
-⸻
-
-Star vs Snowflake
-
+19.Star vs Snowflake
 Star:
-
 * Faster BI
-
 Snowflake:
-
 * Less redundancy
 
-⸻
-
-Final Interview Closing Answer
-
-Whenever they ask:
-
-“Why did you choose this architecture?”
-
+20.“Why did you choose this architecture?”
 Use this framework:
-
 1. Scalability
 2. Reliability
 3. Security
 4. Cost
 5. Maintainability
-
 Example:
-
 “I chose Kafka + Delta Lake because it provides scalable ingestion, reliable processing through ACID transactions, secure governance via Unity Catalog, lower operational cost through optimized storage, and easier maintenance through medallion architecture.”
