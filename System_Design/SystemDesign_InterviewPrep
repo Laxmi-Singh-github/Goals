@@ -27,9 +27,9 @@ We need to:
 
 ***
 # 🟦 2. Data Modeling (What & Why)
+-I’ll first identify data entities
 ### ✅ Transaction Data (Fact Table)
 Represents business events (purchases)
-
 ```sql
 transactions (
   order_id STRING,
@@ -44,8 +44,6 @@ transactions (
 👉 Why?
 * Captures **real business activity**
 * Used for KPIs like revenue, quantity
-
-***
 
 ### ✅ Reference Data (Dimension Tables)
 
@@ -73,12 +71,12 @@ promotions (
 ***
 
 # 🟦 3. Batch Pipeline Architecture (End-to-End)
-***
-## ✅ Step 1: Ingestion
+✅ Step 1: Ingestion
 **Approach**
-* Source DB (Teradata / OLTP)
-* Tools:
-  * **AWS DMS / Glue / APIs**
+* Source DB (Teradata / transactional DB/OLTP)
+* Ingestion Tools:AWS DMS / Glue / APIs
+* Store in: S3 (data lake)
+
 ```python
 # Example: Glue ingestion (simplified)
 df = spark.read.format("jdbc") \
@@ -88,32 +86,36 @@ df = spark.read.format("jdbc") \
 df.write.mode("append").parquet("s3://datalake/bronze/transactions/")
 ```
 👉 Why?
-
 * JDBC ingestion ensures **incremental data capture**
 * S3 = scalable, cost-efficient
 ***
-##################### ✅ Step 2: Medallion Architecture
+##################### ✅ Step 2- Part 1: Medallion Architecture
 
 ### 🔹 Bronze (Raw Layer)
 * Store raw data as-is
-👉 Why:
-* Enables **reprocessing**
+* Enables reprocessing
 * Audit / lineage
-***
 
 ### 🔹 Silver (Clean Layer)
+-Cleaned & standardized:
++Null checks
++Schema enforcement
++Deduplication
+* Improves **data quality**
+* Removes duplicates/nulls
 ```python
 df_clean = df.dropDuplicates(["order_id"]) \
              .filter("user_id IS NOT NULL AND product_id IS NOT NULL")
 
 df_clean.write.mode("overwrite").parquet("s3://datalake/silver/")
 ```
-👉 Why:
-* Improves **data quality**
-* Removes duplicates/nulls
 
-***
 ### 🔹 Gold (Business Layer)
+-Business-ready data:
++Join transaction + product + customer
++Filter promotion period
++Aggregate metrics
+* Aggregated, **ready for business use**
 
 ```sql
 SELECT
@@ -127,21 +129,22 @@ WHERE t.timestamp BETWEEN p.start_date AND p.end_date
 GROUP BY c.customer_group
 ORDER BY total_quantity DESC;
 ```
-👉 Why:
-* Aggregated, **ready for business use**
-***
+
+#################### ✅  Step 2-Part2: Transformation
+Use:
+AWS Glue / Spark / DBT
+Logic:
+Join datasets
+Aggregate purchases
+Filter promotion period
 
 #################### ✅ Step 3: Storage
 👉 Use:
 * **Parquet format**
-
 Why?
-
 * Columnar → faster queries
 * Compression → less storage
 * Schema support
-
-***
 
 ##################### ✅ Step 4: Serving Layer
 
@@ -156,19 +159,15 @@ SELECT * FROM s3_gold_data;
 👉 Tools:
 * Power BI / Tableau
 KPIs:
-
 * Purchases per customer group
 * Promotion impact %
 * Revenue uplift
 ***
-# 🟦 4. Production Readiness (Very Important)
-
+# 🟦 4. Production Readiness
 ✅ Incremental processing (CDC)
-
 ```sql
 WHERE timestamp > last_run_time
 ```
-
 ✅ Partitioning
 
 ```python
@@ -196,15 +195,21 @@ Ensures:
 * Maintainability
 
 ***
+✅ Data quality checks
+✅ Partitioning (by date/product)
+✅ Incremental loads
+✅ CI/CD pipelines
+✅ Monitoring (CloudWatch)
+✅ Schema evolution handling
 
 ########################## 🟦 5. Streaming Architecture (Clickstream Case)
+
+User click → API → Kafka → Stream processing → S3/Delta → Redshift
 
 ***
 
 ## ✅ Step 1: Event Ingestion
-
-👉 Tools:
-
+👉 Ingestion Tools:
 * Kafka / AWS MSK / Kinesis
 
 Event Example:
@@ -220,7 +225,8 @@ Event Example:
 
 ***
 
-## ✅ Step 2: Stream Processing
+## ✅ Step 2: Processing-
+Spark Structured Streaming / FlinkStream
 
 ```python
 stream_df = spark.readStream \
@@ -235,11 +241,8 @@ aggregated = parsed.groupBy("customer_group").count()
 ```
 
 👉 Why:
-
 * Real-time insights
 * Low latency
-
-***
 
 ## ✅ Step 3: Sink
 
@@ -255,19 +258,12 @@ aggregated.writeStream \
 # ############################🟦 6. File Format Recommendation
 
 ### ✅ JSON (Ingestion)
-
 * Flexible schema (best for APIs/events)
 
 ### ✅ Parquet (Storage)
-
 * Columnar → faster analytics
 * Compression → cost saving
-
-👉 Best practice:
-
-> JSON → Bronze → Convert to Parquet → Silver/Gold
-
-***
+JSON → Bronze → Convert to Parquet → Silver/Gold
 
 ########################## 🟦 7. Medallion Architecture (When & Why)
 
