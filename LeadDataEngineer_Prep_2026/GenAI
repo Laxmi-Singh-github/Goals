@@ -1,0 +1,512 @@
+
+1. LLM (Large Language Model)
+
+Layman’s Explanation
+Imagine a person who has read millions of books, websites, articles, and documents. When you ask a question, they predict the next most likely words to answer you.
+That’s an LLM.
+
+Examples:
+
+* ChatGPT
+* GPT-4o
+* Claude
+* Gemini
+* Llama
+
+Interview Answer:
+An LLM is a deep learning model trained on massive text datasets to understand and generate human-like language.
+
+⸻
+
+2. Prompt
+
+Layman’s Explanation
+A prompt is simply the instruction you give the AI.
+
+Like asking a chef:
+
+“Make me spicy pasta.”
+
+The chef’s cooking depends on your instruction.
+
+Example:
+
+Summarize this PDF.
+
+That’s the prompt.
+
+⸻
+
+3. Prompt Engineering
+
+Layman’s Explanation
+
+It’s the art of asking better questions to get better answers.
+
+Bad Prompt:
+
+Tell me about AWS.
+
+Good Prompt:
+
+Explain AWS Glue for beginners in less than 100 words with one real-world example.
+
+The second prompt gives much better results.
+
+⸻
+
+4. Token
+
+Layman’s Explanation
+
+AI doesn’t read sentences.
+
+It breaks everything into small pieces called tokens.
+
+Example:
+
+I love cricket.
+
+May become
+
+"I"
+"love"
+"cricket"
+"."
+
+Think of tokens as Lego blocks that AI uses to build sentences.
+
+⸻
+
+5. Context Window
+
+Layman’s Explanation
+
+Think of it as the AI’s short-term memory.
+
+If you keep talking for hours, eventually the AI starts forgetting the earliest parts because its memory has a limit.
+
+That limit is called the context window.
+
+⸻
+
+6. Temperature
+
+Layman’s Explanation
+
+It controls how creative the AI is.
+
+Low Temperature (0)
+
+Like a calculator.
+
+Always gives nearly the same answer.
+
+High Temperature (1)
+
+Like a creative writer.
+
+Answers become more varied and imaginative.
+
+⸻
+
+7. Embeddings
+
+One of the most asked interview questions.
+
+Layman’s Explanation
+
+Imagine Google Maps.
+
+Every city has coordinates.
+
+Similarly, AI converts every sentence into coordinates (a vector) based on its meaning.
+
+Example:
+
+Dog
+
+and
+
+Puppy
+
+will have nearby coordinates because they mean similar things.
+
+Example:
+
+Apple company
+
+and
+
+Microsoft
+
+will also be closer than
+
+Apple
+
+and
+
+Banana
+
+depending on the context.
+
+Embeddings let AI compare meanings instead of exact words.
+
+⸻
+
+8. Vector
+
+Layman’s Explanation
+
+A vector is simply a long list of numbers.
+
+Example
+
+[0.12, -0.45, 0.98, ....]
+
+Humans see
+
+Insurance Policy
+
+AI sees
+
+[0.21,0.43,-0.89....]
+
+⸻
+
+9. Vector Database
+
+Layman’s Explanation
+
+Think of a huge library.
+
+Instead of arranging books alphabetically, it arranges them by meaning.
+
+When you ask
+
+Leave Policy
+
+it finds documents that mean the same thing, even if they don’t contain the exact words.
+
+Examples
+
+Azure AI Search
+
+Pinecone
+
+FAISS
+
+Milvus
+
+Chroma
+
+⸻
+
+10. Similarity Search
+
+Layman’s Explanation
+
+Suppose you search
+
+Car
+
+Instead of finding only “Car”
+
+It also finds
+
+Vehicle
+Automobile
+SUV
+Sedan
+
+because they have similar meanings.
+
+⸻
+
+11. Cosine Similarity
+
+Layman’s Explanation
+
+Imagine two arrows.
+
+If both point in almost the same direction,
+
+they’re similar.
+
+If one points left and another right,
+
+they’re very different.
+
+Cosine Similarity measures how close two meanings are.
+
+⸻
+
+12. Chunking
+
+Very common interview question.
+
+Layman’s Explanation
+
+Suppose you have a 500-page PDF.
+
+Instead of reading the whole book every time,
+
+you cut it into smaller pages.
+
+Those small pieces are called chunks.
+
+⸻
+
+13. Chunk Overlap
+
+Layman’s Explanation
+
+Suppose Page 10 ends with
+
+Customer can claim...
+
+and Page 11 starts with
+
+...within 30 days.
+
+Without overlap,
+
+AI loses the sentence.
+
+So we repeat a few lines in the next chunk.
+
+That’s chunk overlap.
+
+⸻
+
+14. RAG (Retrieval-Augmented Generation)
+
+Layman’s Explanation
+
+Imagine an open-book exam.
+
+Instead of answering from memory,
+
+you first open the book,
+
+find the relevant page,
+
+read it,
+
+then answer.
+
+That’s exactly what RAG does.
+
+⸻
+
+15. Retriever
+
+Layman’s Explanation
+
+Like a librarian.
+
+You ask
+
+Where is the leave policy?
+
+The librarian finds the correct book.
+
+The retriever finds the correct document chunk.
+
+⸻
+
+16. Generator
+
+Layman’s Explanation
+
+After the librarian gives the book,
+
+the teacher explains it.
+
+The teacher is the Generator (GPT).
+
+⸻
+
+17. Hallucination
+
+Layman’s Explanation
+
+When AI confidently gives a wrong answer.
+
+Example
+
+AI says
+
+India has 35 states.
+
+It sounds confident,
+
+but it’s incorrect.
+
+That’s hallucination.
+
+⸻
+
+18. Grounding
+
+Layman’s Explanation
+
+Instead of guessing,
+
+AI answers only from trusted documents.
+
+Like an employee saying,
+
+“According to the HR policy…”
+
+That’s grounding.
+
+⸻
+
+19. Fine Tuning
+
+Layman’s Explanation
+
+Imagine teaching a chef a new cuisine permanently.
+
+After training,
+
+the chef changes how they cook.
+
+That’s fine-tuning.
+
+⸻
+
+20. RAG vs Fine-Tuning
+
+RAG
+
+* Retrieves latest documents.
+* No retraining.
+* Best for frequently changing information like company policies.
+
+Fine-Tuning
+
+* Changes the model’s behavior.
+* Requires retraining.
+* Best for domain-specific writing style or task adaptation.
+
+⸻
+
+21. LangChain
+
+Layman’s Explanation
+
+Think of LangChain as the project manager.
+
+GPT only answers questions.
+
+LangChain coordinates everything:
+
+* Reads PDFs
+* Splits documents
+* Creates embeddings
+* Stores vectors
+* Searches documents
+* Calls GPT
+* Returns the answer
+
+⸻
+
+22. Agent
+
+Layman’s Explanation
+
+Instead of only answering,
+
+AI can decide what to do.
+
+Example:
+
+Find today's sales.
+↓
+Open SQL Database
+↓
+Run Query
+↓
+Create Graph
+↓
+Summarize
+↓
+Email Manager
+
+This decision-making workflow is an AI Agent.
+
+⸻
+
+23. Tool
+
+Layman’s Explanation
+
+A tool is something the AI can use besides its own knowledge.
+
+Examples:
+
+* SQL Database
+* Calculator
+* Weather API
+* SharePoint
+* Azure Blob Storage
+* REST API
+
+The AI decides when to use these tools.
+
+⸻
+
+24. Guardrails
+
+Layman’s Explanation
+
+Think of them as safety rules.
+
+Just as a car has seat belts and speed limits, GenAI systems have guardrails to prevent harmful or incorrect behavior.
+
+Examples:
+
+* Block abusive content.
+* Prevent prompt injection.
+* Mask sensitive information (PII).
+* Restrict responses to approved company data.
+* Ensure answers stay grounded in retrieved documents.
+
+⸻
+
+25. Azure OpenAI
+
+Layman’s Explanation
+
+It’s OpenAI’s models (like GPT-4o) offered through Microsoft’s Azure cloud, with enterprise features such as security, private networking, identity management, compliance, and monitoring.
+
+⸻
+
+One-Line Interview Cheat Sheet
+
+Keyword	Easy Meaning
+LLM	AI brain that understands and generates text
+Prompt	Instruction given to AI
+Prompt Engineering	Writing better instructions
+Token	Small text pieces AI processes
+Context Window	AI’s working memory
+Temperature	Controls creativity
+Embedding	Numeric representation of meaning
+Vector	List of numbers representing text
+Vector Database	Stores embeddings for semantic search
+Similarity Search	Finds similar meanings, not exact words
+Chunking	Splitting large documents into smaller pieces
+RAG	Retrieve information first, then generate an answer
+Retriever	Finds relevant document chunks
+Generator	LLM that writes the final answer
+Hallucination	AI confidently gives incorrect information
+Grounding	Answering using trusted source documents
+Fine-Tuning	Retraining the model for a specific behavior
+LangChain	Framework that orchestrates GenAI workflows
+Agent	AI that can plan and perform actions
+Tool	External resource the AI can use
+Guardrails	Safety and security controls
+Azure OpenAI	Enterprise access to OpenAI models on Azure
+
