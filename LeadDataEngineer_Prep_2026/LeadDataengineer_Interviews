@@ -2,6 +2,220 @@
 
 #####################################
 
+///////// Kestra / cogbee / L1 -29 july
+
+
+Question 1: SQL (Top 5 Transactions + Running Total)
+
+Question
+
+You have the following table:
+
+CREATE TABLE advisor_transactions (
+    transaction_id BIGINT,
+    advisor_id INT,
+    client_id INT,
+    transaction_amount DECIMAL(18,2),
+    transaction_type VARCHAR(20),
+    transaction_date DATE
+);
+
+The table is partitioned by transaction_date and contains around 800 million rows.
+
+Write a SQL query to return, for each advisor:
+
+* Top 5 transactions by amount in the last completed quarter.
+* Running total of transaction_amount ordered by transaction_date.
+* Explain how you would optimize the query.
+
+Answer
+
+WITH ranked AS (
+SELECT *,
+ROW_NUMBER() OVER(
+PARTITION BY advisor_id
+ORDER BY transaction_amount DESC
+) rn,
+SUM(transaction_amount) OVER(
+PARTITION BY advisor_id
+ORDER BY transaction_date
+) running_total
+FROM advisor_transactions
+WHERE transaction_date >= DATE_TRUNC('quarter',CURRENT_DATE)-INTERVAL '3 months'
+AND transaction_date < DATE_TRUNC('quarter',CURRENT_DATE)
+)
+SELECT transaction_id,
+advisor_id,
+transaction_amount,
+transaction_date,
+running_total
+FROM ranked
+WHERE rn<=5;
+
+Explanation
+
+* ROW_NUMBER() returns the top 5 transactions per advisor.
+* SUM() OVER() calculates the running total.
+* Filtering on the last completed quarter enables partition pruning.
+
+Performance Optimization
+
+* Partition by transaction_date
+* Z-ORDER/Cluster by advisor_id
+* Run OPTIMIZE and VACUUM
+* Use Delta Lake and AQE
+
+⸻
+
+Question 2: Auto Loader + Delta Live Tables
+
+Question
+
+Client onboarding JSON files continuously arrive in the Raw zone of ADLS Gen2.
+
+Build:
+
+* Bronze layer using Auto Loader.
+* Silver layer using Delta Live Tables (DLT) that:
+    * Removes records with null email
+    * Deduplicates on client_id
+
+Answer
+
+Bronze
+
+(spark.readStream
+.format("cloudFiles")
+.option("cloudFiles.format","json")
+.load("/raw/client"))
+.writeStream\
+.format("delta")\
+.option("checkpointLocation","/checkpoint")\
+.table("bronze_client")
+
+Silver (DLT)
+
+import dlt
+from pyspark.sql.functions import col
+@dlt.table
+def silver_client():
+    return (
+        dlt.read("bronze_client")
+        .filter(col("email").isNotNull())
+        .dropDuplicates(["client_id"])
+    )
+
+Explanation
+
+* Auto Loader loads only new files using checkpoints.
+* Bronze stores raw data.
+* DLT cleans data and removes duplicates before writing to Silver.
+
+⸻
+
+Question 3: Azure Databricks Lakehouse Architecture
+
+Question
+
+An organization wants to migrate its on-premises data warehouse to an Azure Databricks Lakehouse.
+
+Design an end-to-end architecture covering:
+
+* Ingestion
+* Storage
+* Compute
+* Governance
+* Security
+* Orchestration
+* CI/CD
+
+Also provision the storage conceptually.
+
+Answer
+
+On-Prem Database
+        │
+Azure Data Factory
+        │
+ADLS Gen2
+(Raw → Bronze → Silver → Gold)
+        │
+Azure Databricks
+(Spark, DLT)
+        │
+Unity Catalog
+        │
+Power BI / ML / Applications
+
+Components
+
+Component	Service
+Ingestion	Azure Data Factory
+Storage	ADLS Gen2
+Compute	Azure Databricks
+Governance	Unity Catalog
+Security	Azure AD, Key Vault, Managed Identity
+Orchestration	ADF / Databricks Workflows
+CI/CD	Azure DevOps + Git + Terraform
+
+Storage
+
+ADLS Gen2
+│
+├── raw
+├── bronze
+├── silver
+├── gold
+└── checkpoints
+
+⸻
+
+Question 4: Delta Merge (SCD Type 1)
+
+Question
+
+The client_master Delta table receives daily updates from an MDM system.
+
+Write PySpark code to:
+
+* Perform SCD Type 1 upsert.
+* Update existing records.
+* Insert new records.
+* Support schema evolution automatically.
+
+Answer
+
+from delta.tables import DeltaTable
+spark.conf.set(
+"spark.databricks.delta.schema.autoMerge.enabled",
+"true"
+)
+deltaTable = DeltaTable.forName(spark,"client_master")
+(deltaTable.alias("t")
+.merge(
+client_master_updates.alias("s"),
+"t.client_id=s.client_id")
+.whenMatchedUpdateAll()
+.whenNotMatchedInsertAll()
+.execute())
+
+Explanation
+
+* merge() performs upserts.
+* Existing rows are updated.
+* New rows are inserted.
+* schema.autoMerge.enabled=true automatically handles new source columns.
+* The merge is idempotent, so rerunning the job does not create duplicates.
+
+
+Interview Summary (1 minute)
+
+* Auto Loader ingests new files incrementally into Bronze.
+* DLT transforms Bronze into clean, deduplicated Silver tables.
+* Delta MERGE implements SCD Type 1 with automatic schema evolution.
+* Azure Lakehouse consists of ADF → ADLS Gen2 → Databricks → Unity Catalog → Power BI/ML.
+* Optimization: Partitioning, Z-Ordering, OPTIMIZE, VACUUM, AQE, and Delta Lake ensure scalability for hundreds of millions of rows.
+
 
 /////////////////////////// TESCO L1///////////////
 
